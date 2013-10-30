@@ -4,13 +4,15 @@
 import binascii
 import Crypto
 import scrypt
-import six
 import struct
+import six
+from six.moves import zip
 
 from Crypto import Random
 rndfile = Random.new()
 
 
+### EXCEPTIONS
 class TripleSecError(Exception):
     """Generic TripleSec-related error"""
     pass
@@ -27,6 +29,16 @@ class TripleSecFailedAssertion(TripleSecError):
     pass
 
 
+### UTILITIES
+def _constant_time_compare(a, b):
+    if len(a) != len(b): return False
+    result = 0
+    for x, y in zip(a, b):
+        result |= six.byte2int(x) ^ six.byte2int(y)
+    return (result == 0)
+
+
+### MAIN CLASS
 class TripleSec():
     LATEST_VERSION = 3
     MAGIC_BYTES = binascii.unhexlify(b'1c94d7de')
@@ -92,6 +104,7 @@ class TripleSec():
         pass
 
 
+### VERSIONS IMPLEMENTATIONS
 class TripleSec_v3():
     VERSION = 3
 
@@ -151,10 +164,11 @@ class TripleSec_v3():
 
         stretched_key = self._key_stretching(key, salt)
 
-        actual_hmac_sha2 = self._hmac_sha256(header + salt + encrypted_material, stretched_key[3])
-        actual_hmac_sha3 = self._hmac_sha3(header + salt + encrypted_material, stretched_key[4])
+        generated_hmac_sha2 = self._hmac_sha256(header + salt + encrypted_material, stretched_key[3])
+        generated_hmac_sha3 = self._hmac_sha3(header + salt + encrypted_material, stretched_key[4])
 
-        if actual_hmac_sha2 != hmac_sha2 or actual_hmac_sha3 != hmac_sha3:
+        if not _constant_time_compare(generated_hmac_sha2, hmac_sha2) or \
+           not _constant_time_compare(generated_hmac_sha3, hmac_sha3):
             raise TripleSecDecryptionError(u"Failed authentication of the data")
 
         second_step = self._aes_decrypt(encrypted_material, stretched_key[2])
@@ -166,7 +180,7 @@ class TripleSec_v3():
         return result
 
 
-TripleSec._versions_implementations = {3: TripleSec_v3}
+TripleSec._versions_implementations[TripleSec_v3.VERSION] = TripleSec_v3
 
 
 # Expose encrypt() and decrypt() shortcuts
