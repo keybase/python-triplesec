@@ -2,15 +2,17 @@
 #-*- coding:utf-8 -*-
 
 import binascii
-import Crypto
 import scrypt
 import struct
 import hmac
 import hashlib
 import six
+import twofish
 from six.moves import zip
 from collections import namedtuple
-
+from Crypto.Util import Counter
+from Crypto.Util.strxor import strxor
+from Crypto.Cipher import AES as Crypto_AES
 from Crypto import Random
 rndfile = Random.new()
 
@@ -56,39 +58,61 @@ class AES:
 
     @classmethod
     def encrypt(cls, data, key):
-        # TODO stubbed
         if len(key) != cls.key_size:
             raise TripleSecFailedAssertion(u"Wrong AES key size")
+
         iv = rndfile.read(cls.block_size)
-        return iv + data
+        ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
+
+        ciphertext = Crypto_AES.new(key, Crypto_AES.MODE_CTR,
+            counter=ctr).encrypt(data)
+        return iv + ciphertext
 
     @classmethod
     def decrypt(cls, data, key):
-        # TODO stubbed
         if len(key) != cls.key_size:
             raise TripleSecFailedAssertion(u"Wrong AES key size")
+
         iv = data[:cls.block_size]
-        return data[cls.block_size:]
+        ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
+
+        return Crypto_AES.new(key, Crypto_AES.MODE_CTR,
+            counter=ctr).decrypt(data[cls.block_size:])
 
 class Twofish:
     key_size = 32
     block_size = 16
 
     @classmethod
+    def _gen_keystream(cls, length, T, ctr):
+        req_blocks = length // cls.block_size + 1
+        keystream = b''
+        for _ in range(req_blocks):
+            keystream += T.encrypt(ctr())
+        return keystream[:length]
+
+    @classmethod
     def encrypt(cls, data, key):
-        # TODO stubbed
         if len(key) != cls.key_size:
             raise TripleSecFailedAssertion(u"Wrong Twofish key size")
+
         iv = rndfile.read(cls.block_size)
-        return iv + data
+        ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
+
+        T = twofish.Twofish(key)
+        ciphertext = strxor(data, cls._gen_keystream(len(data), T, ctr))
+        return iv + ciphertext
 
     @classmethod
     def decrypt(cls, data, key):
-        # TODO stubbed
         if len(key) != cls.key_size:
             raise TripleSecFailedAssertion(u"Wrong Twofish key size")
+
         iv = data[:cls.block_size]
-        return data[cls.block_size:]
+        ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
+
+        T = twofish.Twofish(key)
+        return strxor(data, cls._gen_keystream(len(data), T, ctr))
 
 class XSalsa20:
     key_size = 32
@@ -96,6 +120,7 @@ class XSalsa20:
 
     @classmethod
     def encrypt(cls, data, key):
+        # TODO stubbed
         if len(key) != cls.key_size:
             raise TripleSecFailedAssertion(u"Wrong XSalsa20 key size")
         iv = rndfile.read(cls.iv_size)
@@ -128,7 +153,7 @@ class TripleSec():
     LATEST_VERSION = 3
     MAGIC_BYTES = binascii.unhexlify(b'1c94d7de')
 
-    _versions = {}
+    VERSIONS = {}
 
     @staticmethod
     def _check_key_type(key):
@@ -181,7 +206,7 @@ class TripleSec():
             raise TripleSecError(u"You didn't initialize TripleSec with a key, so you need to specify one")
 
         if not v: v = self.LATEST_VERSION
-        version = self._versions[v]
+        version = self.VERSIONS[v]
         result, extra = self._encrypt(data, key, version, extra_bytes)
 
         self._check_output_type(result)
@@ -230,10 +255,10 @@ class TripleSec():
             raise TripleSecError(u"This does not look like a TripleSec ciphertext")
 
         header_version = struct.unpack("<I", data[4:8])[0]
-        if header_version not in self._versions:
+        if header_version not in self.VERSIONS:
             raise TripleSecError(u"Unimplemented version")
 
-        version = self._versions[header_version]
+        version = self.VERSIONS[header_version]
         result = self._decrypt(data, key, version)
 
         self._check_output_type(result)
@@ -298,7 +323,7 @@ class TripleSec():
 
 
 ### VERSIONS DEFINITIONS
-TripleSec._versions[3] = Constants(
+TripleSec.VERSIONS[3] = Constants(
     header = [ TripleSec.MAGIC_BYTES, struct.pack("<I", 3) ],
     salt_size = 16,
 
