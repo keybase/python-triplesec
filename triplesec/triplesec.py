@@ -7,6 +7,7 @@ import struct
 import hmac
 import hashlib
 import six
+import sys
 import twofish
 from six.moves import zip
 from collections import namedtuple
@@ -15,6 +16,8 @@ from Crypto.Util.strxor import strxor
 from Crypto.Cipher import AES as Crypto_AES
 from Crypto import Random
 rndfile = Random.new()
+if sys.version_info < (3, 4):
+    import sha3
 
 
 ### EXCEPTIONS
@@ -41,6 +44,26 @@ def _constant_time_compare(a, b):
     for x, y in zip(six.iterbytes(a), six.iterbytes(b)):
         result |= x ^ y
     return (result == 0)
+
+
+class new_sha3_512:
+    # All this just to add blocksize
+    block_size = 64
+    digest_size = 64
+    def __init__(self, string=''):
+        self._obj = hashlib.sha3_512()
+        self._obj.update(string)
+    def digest(self):
+        return self._obj.digest()
+    def hexdigest(self):
+        return self._obj.hexdigest()
+    def update(self, string):
+        return self._obj.update(string)
+    def copy(self):
+        copy = new_sha3_512()
+        copy._obj = self._obj.copy()
+        return copy
+sha3_512 = lambda s='': new_sha3_512(s)
 
 
 ### DATA STRUCTURES
@@ -138,8 +161,7 @@ def HMAC_SHA512(data, key):
     return hmac.new(key, data, hashlib.sha512).digest()
 
 def HMAC_SHA3(data, key):
-    # TODO stubbed
-    return b'\x00' * 64
+    return hmac.new(key, data, sha3_512).digest()
 
 def Scrypt(key, salt, length, parameters):
     try:
