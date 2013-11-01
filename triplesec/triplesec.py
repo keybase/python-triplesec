@@ -9,6 +9,7 @@ import hashlib
 import six
 import sys
 import twofish
+import salsa20
 from six.moves import zip
 from collections import namedtuple
 from Crypto.Util import Counter
@@ -50,7 +51,7 @@ class new_sha3_512:
     # All this just to add blocksize
     block_size = 64
     digest_size = 64
-    def __init__(self, string=''):
+    def __init__(self, string=b''):
         self._obj = hashlib.sha3_512()
         self._obj.update(string)
     def digest(self):
@@ -63,7 +64,7 @@ class new_sha3_512:
         copy = new_sha3_512()
         copy._obj = self._obj.copy()
         return copy
-sha3_512 = lambda s='': new_sha3_512(s)
+sha3_512 = lambda s=b'': new_sha3_512(s)
 
 
 ### DATA STRUCTURES
@@ -135,7 +136,7 @@ class Twofish:
         ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
 
         T = twofish.Twofish(key)
-        return strxor(data, cls._gen_keystream(len(data), T, ctr))
+        return strxor(data[cls.block_size:], cls._gen_keystream(len(data[cls.block_size:]), T, ctr))
 
 class XSalsa20:
     key_size = 32
@@ -143,19 +144,22 @@ class XSalsa20:
 
     @classmethod
     def encrypt(cls, data, key):
-        # TODO stubbed
         if len(key) != cls.key_size:
             raise TripleSecFailedAssertion(u"Wrong XSalsa20 key size")
+
         iv = rndfile.read(cls.iv_size)
-        return iv + data
+
+        ciphertext = salsa20.XSalsa20_xor(data, iv, key)
+        return iv + ciphertext
 
     @classmethod
     def decrypt(cls, data, key):
-        # TODO stubbed
         if len(key) != cls.key_size:
             raise TripleSecFailedAssertion(u"Wrong XSalsa20 key size")
-        iv = data[:cls.iv_size]
-        return data[cls.iv_size:]
+
+        iv = data[:cls.block_size]
+
+        return salsa20.XSalsa20_xor(data[cls.block_size:], iv, key)
 
 def HMAC_SHA512(data, key):
     return hmac.new(key, data, hashlib.sha512).digest()

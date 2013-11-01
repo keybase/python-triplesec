@@ -3,3 +3,4 @@ scrypt>=0.6,<0.7
 six
 pysha3
 https://github.com/keybase/python-twofish/zipball/master
+https://github.com/keybase/python-salsa20/zipball/master
