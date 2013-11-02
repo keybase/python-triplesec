@@ -157,9 +157,9 @@ class XSalsa20:
         if len(key) != cls.key_size:
             raise TripleSecFailedAssertion(u"Wrong XSalsa20 key size")
 
-        iv = data[:cls.block_size]
+        iv = data[:cls.iv_size]
 
-        return salsa20.XSalsa20_xor(data[cls.block_size:], iv, key)
+        return salsa20.XSalsa20_xor(data[cls.iv_size:], iv, key)
 
 def HMAC_SHA512(data, key):
     return hmac.new(key, data, hashlib.sha512).digest()
@@ -184,7 +184,7 @@ class TripleSec():
     @staticmethod
     def _check_key_type(key):
         if key is not None and not isinstance(key, six.binary_type):
-            raise TripleSecError(u"The key needs needs to be a binary string (str() in Python 2 and bytes() in Python 3)")
+            raise TripleSecError(u"The key needs to be a binary string (str() in Python 2 and bytes() in Python 3)")
 
     @staticmethod
     def _check_data_type(data):
@@ -230,6 +230,7 @@ class TripleSec():
         self._check_key_type(key)
         if key is None and self.key is None:
             raise TripleSecError(u"You didn't initialize TripleSec with a key, so you need to specify one")
+        if key is None: key = self.key
 
         if not v: v = self.LATEST_VERSION
         version = self.VERSIONS[v]
@@ -276,6 +277,7 @@ class TripleSec():
         self._check_key_type(key)
         if key is None and self.key is None:
             raise TripleSecError(u"You didn't initialize TripleSec with a key, so you need to specify one")
+        if key is None: key = self.key
 
         if len(data) < 8 or data[:4] != self.MAGIC_BYTES:
             raise TripleSecError(u"This does not look like a TripleSec ciphertext")
@@ -292,7 +294,7 @@ class TripleSec():
 
     def _decrypt(self, data, key, version):
         if len(data) < self._calc_overhead(version):
-            raise TripleSecDecryptionError(u"Input does not look like a TripleSec ciphertext")
+            raise TripleSecError(u"Input does not look like a TripleSec ciphertext")
 
         header, salt, macs, encrypted_material = \
             self._split_ciphertext(data, version)
