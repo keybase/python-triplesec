@@ -199,6 +199,7 @@ class TripleSec():
     def __init__(self, key=None):
         self._check_key_type(key)
         self.key = key
+        self._extra_bytes = None
 
     def _key_stretching(self, key, salt, version, extra_bytes=0):
         total_keys_size = sum(x.key_size for x in version.MACs + version.ciphers) + extra_bytes
@@ -238,7 +239,8 @@ class TripleSec():
 
         self._check_output_type(result)
         self._check_output_type(extra)
-        return result, extra
+        self._extra_bytes = extra or None
+        return result
 
     def _encrypt(self, data, key, version, extra_bytes):
         salt = rndfile.read(version.salt_size)
@@ -349,6 +351,9 @@ class TripleSec():
             data = c.implementation.decrypt(data, key)
         return data
 
+    def extra_bytes(self):
+        return self._extra_bytes
+
 
 ### VERSIONS DEFINITIONS
 TripleSec.VERSIONS[3] = Constants(
@@ -388,3 +393,4 @@ TripleSec.VERSIONS[3] = Constants(
 _t = TripleSec()
 encrypt = _t.encrypt
 decrypt = _t.decrypt
+extra_bytes = _t.extra_bytes
