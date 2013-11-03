@@ -214,6 +214,8 @@ class TripleSec():
         for c in version.ciphers:
             cipher_keys.append(key_material[i:i + c.key_size])
             i += c.key_size
+        cipher_keys.reverse()  # The first key is that of the outermost cipher
+                               # This is the opposite of how we order them in Constants
         extra = key_material[i:]
 
         return mac_keys, cipher_keys, extra
@@ -267,10 +269,9 @@ class TripleSec():
         return result
 
     def _encrypt_data(self, data, cipher_keys, version):
-        ciphers_num = len(version.ciphers)
         for n, c in enumerate(version.ciphers):
             # the keys order is from the outermost to the innermost
-            key = cipher_keys[ciphers_num - 1 - n]
+            key = cipher_keys[n]
             data = c.implementation.encrypt(data, key)
         return data
 
@@ -343,11 +344,10 @@ class TripleSec():
         return result
 
     def _decrypt_data(self, encrypted_material, cipher_keys, version):
-        ciphers_num = len(version.ciphers)
         data = encrypted_material
         for n, c in enumerate(reversed(version.ciphers)):
             # the keys order is from the outermost to the innermost
-            key = cipher_keys[ciphers_num - 1 - n]
+            key = tuple(reversed(cipher_keys))[n]
             data = c.implementation.decrypt(data, key)
         return data
 
