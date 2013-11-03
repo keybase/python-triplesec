@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
-import unittest2
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 import binascii
-from triplesec import TripleSec, TripleSecError
-import triplesec
 from collections import namedtuple
 
-# consider encrypt return value API
+import triplesec
+from triplesec import TripleSec, TripleSecError
 
 Vector = namedtuple('Vector', ['key', 'plaintext', 'ciphertext', 'extra'])
 
@@ -16,7 +18,7 @@ VECTOR = Vector(b'key', # TODO - FAKE VECTORS
            b'\xb2\x8ax@%R\xcc\x10\x87&\x0b\x1e\x1b\xc4\x1e\x90\x8aZ\x13\xb1t\x82\xac\xa35\x1fn\xb0\x01\r.\xa1\xbe(\xfe\xd8\x88\xf3\x13s\xe2\x08)^\xe9Bs\xab\xc7j')
 
 
-class TripleSec_tests(unittest2.TestCase):
+class TripleSec_tests(unittest.TestCase):
     def _test_encrypt(self, encrypt, plaintext, key, pass_key=True):
         if pass_key: ciphertext = encrypt(plaintext, key)
         else: ciphertext = encrypt(plaintext)
