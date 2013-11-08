@@ -10,12 +10,12 @@ import six
 import sys
 import twofish
 import salsa20
-import pbkdf2
 from six.moves import zip
 from collections import namedtuple
 from Crypto.Util import Counter
 from Crypto.Util.strxor import strxor
 from Crypto.Cipher import AES as Crypto_AES
+from Crypto.Protocol.KDF import PBKDF2 as Crypto_PBKDF2
 from Crypto import Random
 rndfile = Random.new()
 if sys.version_info < (3, 4):
@@ -168,17 +168,6 @@ def HMAC_SHA512(data, key):
 def HMAC_SHA3(data, key):
     return hmac.new(key, data, sha3_512).digest()
 
-# trans_5C = b''.join(six.int2byte(x ^ 0x5c) for x in range(256))
-# trans_36 = b''.join(six.int2byte(x ^ 0x36) for x in range(256))
-# def HMAC_SHA3(data, key):
-#     blocksize = 72
-#     if len(key) > blocksize:
-#         key = hashlib.sha3_512(key).digest()
-#     key += b'\x00' * (blocksize - len(key))
-#     o_key_pad = key.translate(trans_5C)
-#     i_key_pad = key.translate(trans_36)
-#     return hashlib.sha3_512(o_key_pad + hashlib.sha3_512(i_key_pad + data).digest())
-
 def Scrypt(key, salt, length, parameters):
     try:
         return scrypt.hash(key, salt, parameters.N, parameters.r, parameters.p, length)
@@ -186,12 +175,13 @@ def Scrypt(key, salt, length, parameters):
         raise TripleSecError(u"scrypt error")
 
 def XOR_HMAC_SHA3_SHA512(data, key):
-    return strxor(HMAC_SHA512(data, key), HMAC_SHA3(data, key))
+    h0 = struct.pack(">I", 0)
+    h1 = struct.pack(">I", 1)
+    return strxor(HMAC_SHA512(h0 + data, key), HMAC_SHA3(h1 + data, key))
 
 def PBKDF2(key, salt, length, parameters):
-    p = pbkdf2.PBKDF2(key, salt, parameters.i)
-    p._setup(key, salt, parameters.i, lambda key, msg: parameters.PRF(msg, key))
-    return p.read(length)
+    prf = lambda key, msg: parameters.PRF(msg, key)  # Our convention is different
+    return Crypto_PBKDF2(key, salt, length, parameters.i, prf)
 
 
 ### MAIN CLASS
@@ -311,7 +301,7 @@ class TripleSec():
 
         header_version = struct.unpack(">I", data[4:8])[0]
         if header_version not in self.VERSIONS:
-            raise TripleSecError(u"Unimplemented version")
+            raise TripleSecError(u"Unimplemented version: " + str(header_version))
 
         version = self.VERSIONS[header_version]
         result = self._decrypt(data, key, version)
