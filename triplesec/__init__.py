@@ -243,8 +243,14 @@ def main():
     if data.startswith('0x') and sys.argv[1] == 'enc':
         data = binascii.unhexlify(data[2:])
 
-    if sys.argv[1] == 'enc':
-        print(binascii.hexlify(encrypt(data, key)))
-    if sys.argv[1] == 'dec':
-        print(decrypt(binascii.unhexlify(data), key))
+    try:
+        if sys.argv[1] == 'enc':
+            print(binascii.hexlify(encrypt(data, key)))
+        if sys.argv[1] == 'dec':
+            print(decrypt(binascii.unhexlify(data), key))
+    except TripleSecError as e:
+        sys.stderr.write('ERROR: ')
+        sys.stderr.write(e.args[0])
+        sys.stderr.write('\n')
+        sys.exit(1)
 
