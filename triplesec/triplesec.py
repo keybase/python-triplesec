@@ -10,6 +10,7 @@ import six
 import sys
 import twofish
 import salsa20
+import pbkdf2
 from six.moves import zip
 from collections import namedtuple
 from Crypto.Util import Counter
@@ -72,6 +73,7 @@ Cipher = namedtuple('Cipher', ['name', 'implementation', 'overhead_size', 'key_s
 MAC = namedtuple('MAC', ['name', 'implementation', 'key_size', 'output_size'])
 KDF = namedtuple('KDF', ['name', 'implementation', 'parameters'])
 Scrypt_params = namedtuple('Scrypt_params', ['N', 'r', 'p'])
+PBKDF2_params = namedtuple('PBKDF2', ['i', 'PRF'])
 Constants = namedtuple('Constants', ['header', 'salt_size', 'MACs', 'ciphers', 'KDF'])
 
 
@@ -167,11 +169,30 @@ def HMAC_SHA512(data, key):
 def HMAC_SHA3(data, key):
     return hmac.new(key, data, sha3_512).digest()
 
+# trans_5C = b''.join(six.int2byte(x ^ 0x5c) for x in range(256))
+# trans_36 = b''.join(six.int2byte(x ^ 0x36) for x in range(256))
+# def HMAC_SHA3(data, key):
+#     blocksize = 72
+#     if len(key) > blocksize:
+#         key = hashlib.sha3_512(key).digest()
+#     key += b'\x00' * (blocksize - len(key))
+#     o_key_pad = key.translate(trans_5C)
+#     i_key_pad = key.translate(trans_36)
+#     return hashlib.sha3_512(o_key_pad + hashlib.sha3_512(i_key_pad + data).digest())
+
 def Scrypt(key, salt, length, parameters):
     try:
         return scrypt.hash(key, salt, parameters.N, parameters.r, parameters.p, length)
     except scrypt.error:
         raise TripleSecError(u"scrypt error")
+
+def XOR_HMAC_SHA3_SHA512(data, key):
+    return strxor(HMAC_SHA512(data, key), HMAC_SHA3(data, key))
+
+def PBKDF2(key, salt, length, parameters):
+    p = pbkdf2.PBKDF2(key, salt, parameters.i)
+    p._setup(key, salt, parameters.i, lambda key, msg: parameters.PRF(msg, key))
+    return p.read(length)
 
 
 ### MAIN CLASS
@@ -201,7 +222,8 @@ class TripleSec():
         self.key = key
         self._extra_bytes = None
 
-    def _key_stretching(self, key, salt, version, extra_bytes=0):
+    @staticmethod
+    def _key_stretching(key, salt, version, extra_bytes=0):
         total_keys_size = sum(x.key_size for x in version.MACs + version.ciphers) + extra_bytes
         key_material = version.KDF.implementation(key, salt, total_keys_size, version.KDF.parameters)
 
@@ -220,7 +242,8 @@ class TripleSec():
 
         return mac_keys, cipher_keys, extra
 
-    def _calc_overhead(self, version):
+    @staticmethod
+    def _calc_overhead(version):
         tot = 0
         tot += sum(map(len, version.header))
         tot += version.salt_size
@@ -261,14 +284,16 @@ class TripleSec():
             raise TripleSecFailedAssertion(u"Wrong encrypt output length")
         return result, extra
 
-    def _generate_macs(self, authenticated_data, mac_keys, version):
+    @staticmethod
+    def _generate_macs(authenticated_data, mac_keys, version):
         result = []
         for n, m in enumerate(version.MACs):
             mac = m.implementation(authenticated_data, mac_keys[n])
             result.append(mac)
         return result
 
-    def _encrypt_data(self, data, cipher_keys, version):
+    @staticmethod
+    def _encrypt_data(data, cipher_keys, version):
         for n, c in enumerate(version.ciphers):
             # the keys order is from the outermost to the innermost
             key = cipher_keys[n]
@@ -365,6 +390,38 @@ TripleSec.VERSIONS[3] = Constants(
               parameters = Scrypt_params(N = 2**13,
                                          r = 8,
                                          p = 1)),
+
+    MACs = [ MAC(name = 'HMAC-SHA-512',
+                 implementation = HMAC_SHA512,
+                 key_size = 48,
+                 output_size = 64),
+             MAC(name = 'HMAC-SHA3',
+                 implementation = HMAC_SHA3,
+                 key_size = 48,
+                 output_size = 64) ],
+
+    ciphers = [ Cipher(name = 'XSalsa20',
+                       implementation = XSalsa20,
+                       overhead_size = XSalsa20.iv_size,
+                       key_size = XSalsa20.key_size),
+                Cipher(name = 'Twofish-CTR',
+                       implementation = Twofish,
+                       overhead_size = Twofish.block_size,
+                       key_size = Twofish.key_size),
+                Cipher(name = 'AES-256-CTR',
+                       implementation = AES,
+                       overhead_size = AES.block_size,
+                       key_size = AES.key_size) ])
+
+
+TripleSec.VERSIONS[1] = Constants(
+    header = [ TripleSec.MAGIC_BYTES, struct.pack(">I", 1) ],
+    salt_size = 8,
+
+    KDF = KDF(name = 'pbkdf2',
+              implementation = PBKDF2,
+              parameters = PBKDF2_params(i = 1024,
+                                         PRF = XOR_HMAC_SHA3_SHA512)),
 
     MACs = [ MAC(name = 'HMAC-SHA-512',
                  implementation = HMAC_SHA512,
