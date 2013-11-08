@@ -357,7 +357,7 @@ class TripleSec():
 
 ### VERSIONS DEFINITIONS
 TripleSec.VERSIONS[3] = Constants(
-    header = [ TripleSec.MAGIC_BYTES, struct.pack("<I", 3) ],
+    header = [ TripleSec.MAGIC_BYTES, struct.pack(">I", 3) ],
     salt_size = 16,
 
     KDF = KDF(name = 'scrypt',
