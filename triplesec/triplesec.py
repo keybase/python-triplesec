@@ -49,7 +49,7 @@ def _constant_time_compare(a, b):
 
 class new_sha3_512:
     # All this just to add blocksize
-    block_size = 64
+    block_size = 72
     digest_size = 64
     def __init__(self, string=b''):
         self._obj = hashlib.sha3_512()
@@ -285,7 +285,8 @@ class TripleSec():
         if len(data) < 8 or data[:4] != self.MAGIC_BYTES:
             raise TripleSecError(u"This does not look like a TripleSec ciphertext")
 
-        header_version = struct.unpack("<I", data[4:8])[0]
+        header_version = struct.unpack(">I", data[4:8])[0]
+        print binascii.hexlify(data[4:8])
         if header_version not in self.VERSIONS:
             raise TripleSecError(u"Unimplemented version")
 
@@ -362,7 +363,7 @@ TripleSec.VERSIONS[3] = Constants(
 
     KDF = KDF(name = 'scrypt',
               implementation = Scrypt,
-              parameters = Scrypt_params(N = 2**13,
+              parameters = Scrypt_params(N = 2**15,
                                          r = 8,
                                          p = 1)),
 
