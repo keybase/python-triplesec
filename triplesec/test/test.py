@@ -79,6 +79,13 @@ class TripleSec_tests(unittest.TestCase):
         regex = r'Unimplemented version'
         self.assertRaisesRegexp(TripleSecError, regex, lambda: triplesec.decrypt(unhex(b'1c94d7de01200000abcdef'), b'xxx'))
 
+    def test_zero_length(self):
+        regex = r'Invalid message length - message cannot be empty'
+        self.assertRaisesRegexp(TripleSecError, regex, lambda: triplesec.encrypt(b'', b'xxx'))
+        regex = r'Invalid key length - key cannot be empty'
+        self.assertRaisesRegexp(TripleSecError, regex, lambda: triplesec.encrypt(b'foo', b''))
+        self.assertRaisesRegexp(TripleSecError, regex, lambda: triplesec.decrypt(b'foo', b''))
+
     def test_extra_bytes(self):
         pass  # TODO
 

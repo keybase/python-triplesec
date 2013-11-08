@@ -36,14 +36,19 @@ class TripleSec():
     VERSIONS = VERSIONS
 
     @staticmethod
-    def _check_key_type(key):
-        if key is not None and not isinstance(key, six.binary_type):
+    def _check_key(key):
+        if key is None: return
+        if not isinstance(key, six.binary_type):
             raise TripleSecError(u"The key needs to be a binary string (str() in Python 2 and bytes() in Python 3)")
+        if len(key) == 0:
+            raise TripleSecError(u"Invalid key length - key cannot be empty")
 
     @staticmethod
-    def _check_data_type(data):
+    def _check_data(data):
         if not isinstance(data, six.binary_type):
             raise TripleSecError(u"The input data needs to be a binary string (str() in Python 2 and bytes() in Python 3)")
+        if len(data) == 0:
+            raise TripleSecError(u"Invalid message length - message cannot be empty")
 
     @staticmethod
     def _check_output_type(data):
@@ -51,7 +56,7 @@ class TripleSec():
             raise TripleSecFailedAssertion(u"The return value was not binary")
 
     def __init__(self, key=None):
-        self._check_key_type(key)
+        self._check_key(key)
         self.key = key
         self._extra_bytes = None
 
@@ -85,8 +90,8 @@ class TripleSec():
         return tot
 
     def encrypt(self, data, key=None, v=None, extra_bytes=0):
-        self._check_data_type(data)
-        self._check_key_type(key)
+        self._check_data(data)
+        self._check_key(key)
         if key is None and self.key is None:
             raise TripleSecError(u"You didn't initialize TripleSec with a key, so you need to specify one")
         if key is None: key = self.key
@@ -134,8 +139,8 @@ class TripleSec():
         return data
 
     def decrypt(self, data, key=None):
-        self._check_data_type(data)
-        self._check_key_type(key)
+        self._check_data(data)
+        self._check_key(key)
         if key is None and self.key is None:
             raise TripleSecError(u"You didn't initialize TripleSec with a key, so you need to specify one")
         if key is None: key = self.key
