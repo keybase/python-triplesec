@@ -49,8 +49,7 @@ def _constant_time_compare(a, b):
 
 
 class new_sha3_512:
-    # All this just to add blocksize
-    block_size = 64
+    block_size = 72
     digest_size = 64
     def __init__(self, string=b''):
         self._obj = hashlib.sha3_512()
