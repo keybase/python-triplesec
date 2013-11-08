@@ -72,6 +72,7 @@ sha3_512 = lambda s=b'': new_sha3_512(s)
 
 def pbkdf2_hmac_sha512_sha3 (password, salt, dkLen, count):
     def prf (key, data):
+        # Maybe let's revisit this?
         h2 = hmac.new(key,struct.pack(">I",0)+data,hashlib.sha512).digest()
         h3 = hmac.new(key,struct.pack(">I",1)+data,sha3_512).digest()
         ret = strxor(h2, h3)
