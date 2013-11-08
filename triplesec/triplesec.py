@@ -309,7 +309,7 @@ class TripleSec():
         if len(data) < 8 or data[:4] != self.MAGIC_BYTES:
             raise TripleSecError(u"This does not look like a TripleSec ciphertext")
 
-        header_version = struct.unpack("<I", data[4:8])[0]
+        header_version = struct.unpack(">I", data[4:8])[0]
         if header_version not in self.VERSIONS:
             raise TripleSecError(u"Unimplemented version")
 
@@ -381,7 +381,7 @@ class TripleSec():
 
 ### VERSIONS DEFINITIONS
 TripleSec.VERSIONS[3] = Constants(
-    header = [ TripleSec.MAGIC_BYTES, struct.pack("<I", 3) ],
+    header = [ TripleSec.MAGIC_BYTES, struct.pack(">I", 3) ],
     salt_size = 16,
 
     KDF = KDF(name = 'scrypt',
