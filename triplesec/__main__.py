@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+"""
+This file is part of Python TripleSec - a Python implementation of TripleSec
+
+Released under The MIT License (MIT)
+Copyright (c) 2013 Keybase
+"""
+
 # Execute with
 # $ python triplesec/__main__.py (2.6+)
 # $ python -m triplesec          (2.7+)
