@@ -7,4 +7,5 @@ key = sys.argv[1]
 data = sys.argv[2]
 ciphertext = triplesec.encrypt(data,key)
 
+print binascii.hexlify(key)
 print binascii.hexlify(ciphertext)
