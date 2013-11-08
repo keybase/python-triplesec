@@ -12,7 +12,7 @@ class TripleSec_test_PBKDF2(unittest.TestCase):
             key = binascii.unhexlify(v['key'])
             salt = binascii.unhexlify(v['salt'])
             derived = PBKDF2(key, salt, v['dkLen'], PBKDF2_params(v['c'], XOR_HMAC_SHA3_SHA512))
-            self.assertEqual(binascii.hexlify(derived), v['dk'], repr(v))
+            self.assertEqual(binascii.hexlify(derived), v['dk'].encode(), repr(v))
 
 
 test_vectors = {
