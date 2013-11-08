@@ -286,7 +286,6 @@ class TripleSec():
             raise TripleSecError(u"This does not look like a TripleSec ciphertext")
 
         header_version = struct.unpack(">I", data[4:8])[0]
-        print binascii.hexlify(data[4:8])
         if header_version not in self.VERSIONS:
             raise TripleSecError(u"Unimplemented version")
 
