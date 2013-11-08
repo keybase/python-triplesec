@@ -5,6 +5,7 @@ except ImportError:
 from binascii import unhexlify as unhex
 import json
 import os.path
+import six
 
 import triplesec
 from triplesec import TripleSec, TripleSecError
@@ -90,7 +91,11 @@ class TripleSec_tests(unittest.TestCase):
         pass  # TODO
 
     def test_random_encryption(self):
-        pass  # TODO
+        for i in range(500 // 20):
+            p = triplesec.rndfile.read(i * 20 + 1)
+            k = triplesec.rndfile.read((i * 20 - 300) % 500 + 1)
+            c = triplesec.encrypt(p, k)
+            self.assertEqual(p, triplesec.decrypt(c, k), i)
 
     def test_external_vectors(self):
         for V in vectors:
@@ -98,10 +103,13 @@ class TripleSec_tests(unittest.TestCase):
             self._test_encrypt(triplesec.encrypt, V['plaintext'], V['key'])
             self.assertEqual(triplesec.decrypt(V['ciphertext'], V['key']), V['plaintext'])
 
-    def test_empty_plaintext(self):
-        pass  # TODO
-
     def test_tampered_data(self):
+        regex = r'Failed authentication of the data'
+        c = VECTOR['ciphertext']
+        c = c[:-2] + six.int2byte(six.indexbytes(c, -2) ^ 25) + six.int2byte(six.indexbytes(c, -1))
+        self.assertRaisesRegexp(TripleSecError, regex, lambda: triplesec.decrypt(c, VECTOR['key']))
+
+    def test_chi_squared(self):
         pass  # TODO
 
     def test_randomness(self):
