@@ -2,6 +2,7 @@
 #-*- coding:utf-8 -*-
 
 import binascii
+import getpass
 import scrypt
 import struct
 import hmac
@@ -440,3 +441,32 @@ _t = TripleSec()
 encrypt = _t.encrypt
 decrypt = _t.decrypt
 extra_bytes = _t.extra_bytes
+
+def main():
+    if len(sys.argv) < 3 or sys.argv[1] not in ('enc', 'dec'):
+        print('Command-line TripleSec encryption-decryption tool')
+        print('')
+        print('Usage: %s {end|dec} [key] {message|ciphertext}' % sys.argv[0])
+        print('')
+        print('Both the key and the message can be specified as text or as hex if prepended with 0x')
+        print('The key, if omitted, will be requested')
+        sys.exit(1)
+
+    # TODO: handle encodings
+
+    if len(sys.argv) == 3:
+        key = getpass.getpass('Key (will not be printed): ')
+        data = sys.argv[2]
+    else:
+        key = sys.argv[2]
+        data = sys.argv[3]
+
+    if key.startswith('0x'):
+        key = binascii.unhexlify(key[2:])
+    if data.startswith('0x') and sys.argv[1] == 'enc':
+        data = binascii.unhexlify(data[2:])
+
+    if sys.argv[1] == 'enc':
+        print(binascii.hexlify(encrypt(data, key)))
+    if sys.argv[1] == 'dec':
+        print(decrypt(binascii.unhexlify(data), key))
