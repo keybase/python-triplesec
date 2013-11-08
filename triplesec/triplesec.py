@@ -386,7 +386,7 @@ TripleSec.VERSIONS[3] = Constants(
 
     KDF = KDF(name = 'scrypt',
               implementation = Scrypt,
-              parameters = Scrypt_params(N = 2**13,
+              parameters = Scrypt_params(N = 2**15,
                                          r = 8,
                                          p = 1)),
 
