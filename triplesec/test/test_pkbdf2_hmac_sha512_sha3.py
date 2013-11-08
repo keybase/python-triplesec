@@ -1,20 +1,18 @@
 import binascii
-from triplesec import (
-    PBKDF2,
-    XOR_HMAC_SHA3_SHA512,
-    PBKDF2_params
-)
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+from triplesec.crypto import PBKDF2, XOR_HMAC_SHA3_SHA512
+from triplesec.utils import PBKDF2_params
 
-def test1 (i,v):
-    key = binascii.unhexlify(v['key'])
-    salt = binascii.unhexlify(v['salt'])
-    derived = PBKDF2(key, salt, v['dkLen'], PBKDF2_params(v['c'], XOR_HMAC_SHA3_SHA512))
-    if (binascii.hexlify(derived) == v['dk']):
-        print("OK! " + str(i))
-    else:
-        print(binascii.hexlify(derived))
-        print(v['dk'])
-        print("failed: " + str(i))
+class TripleSec_test_PBKDF2(unittest.TestCase):
+    def test(self):
+        for i,v in enumerate(test_vectors['vectors']):
+            key = binascii.unhexlify(v['key'])
+            salt = binascii.unhexlify(v['salt'])
+            derived = PBKDF2(key, salt, v['dkLen'], PBKDF2_params(v['c'], XOR_HMAC_SHA3_SHA512))
+            self.assertEqual(binascii.hexlify(derived), v['dk'], repr(v))
 
 
 test_vectors = {
@@ -163,6 +161,3 @@ test_vectors = {
         }
     ]
 }
-
-for i,v in enumerate(test_vectors['vectors']):
-    test1(i,v)
