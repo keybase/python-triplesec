@@ -71,16 +71,10 @@ sha3_512 = lambda s=b'': new_sha3_512(s)
 # Needed for calling PBKDF2-HMAC-SHA256-SHA3
 
 def pbkdf2_hmac_sha512_sha3 (password, salt, dkLen, count):
-    print("key: "+ binascii.hexlify(password))
     def prf (key, data):
-        print("key: " + binascii.hexlify(key))
-        print("data: " + binascii.hexlify(data))
         h2 = hmac.new(key,struct.pack(">I",0)+data,hashlib.sha512).digest()
         h3 = hmac.new(key,struct.pack(">I",1)+data,sha3_512).digest()
         ret = strxor(h2, h3)
-        print("h2: " + binascii.hexlify(h2))
-        print("h3: " + binascii.hexlify(h3))
-        print("ret:" + binascii.hexlify(ret))
         return ret
     return PBKDF2(password, salt, dkLen, count, prf)
 
