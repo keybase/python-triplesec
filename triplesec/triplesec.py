@@ -15,6 +15,7 @@ from collections import namedtuple
 from Crypto.Util import Counter
 from Crypto.Util.strxor import strxor
 from Crypto.Cipher import AES as Crypto_AES
+from Crypto.Protocol.KDF import PBKDF2
 from Crypto import Random
 rndfile = Random.new()
 if sys.version_info < (3, 4):
@@ -49,7 +50,7 @@ def _constant_time_compare(a, b):
 
 class new_sha3_512:
     # All this just to add blocksize
-    block_size = 64
+    block_size = 72
     digest_size = 64
     def __init__(self, string=b''):
         self._obj = hashlib.sha3_512()
@@ -66,6 +67,22 @@ class new_sha3_512:
         return copy
 sha3_512 = lambda s=b'': new_sha3_512(s)
 
+
+# Needed for calling PBKDF2-HMAC-SHA256-SHA3
+
+def pbkdf2_hmac_sha512_sha3 (password, salt, dkLen, count):
+    print("key: "+ binascii.hexlify(password))
+    def prf (key, data):
+        print("key: " + binascii.hexlify(key))
+        print("data: " + binascii.hexlify(data))
+        h2 = hmac.new(key,struct.pack(">I",0)+data,hashlib.sha512).digest()
+        h3 = hmac.new(key,struct.pack(">I",1)+data,sha3_512).digest()
+        ret = strxor(h2, h3)
+        print("h2: " + binascii.hexlify(h2))
+        print("h3: " + binascii.hexlify(h3))
+        print("ret:" + binascii.hexlify(ret))
+        return ret
+    return PBKDF2(password, salt, dkLen, count, prf)
 
 ### DATA STRUCTURES
 Cipher = namedtuple('Cipher', ['name', 'implementation', 'overhead_size', 'key_size'])
@@ -287,7 +304,7 @@ class TripleSec():
 
         header_version = struct.unpack("<I", data[4:8])[0]
         if header_version not in self.VERSIONS:
-            raise TripleSecError(u"Unimplemented version")
+            raise TripleSecError(u"Unimplemented version: " + str(header_version))
 
         version = self.VERSIONS[header_version]
         result = self._decrypt(data, key, version)
