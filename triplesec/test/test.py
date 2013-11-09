@@ -6,6 +6,7 @@ from binascii import unhexlify as unhex
 import json
 import os.path
 import six
+import struct
 
 import triplesec
 from triplesec import TripleSec, TripleSecError
@@ -17,6 +18,7 @@ for v in vectors:
     for k in v:
         v[k] = v[k].encode('ascii') # JSON insists to decode the loaded objects
         if v[k].startswith(b'0x'): v[k] = unhex(v[k][2:])
+    if 'extra' in v: v['extra'] = unhex(v['extra'])
     v['ciphertext'] = unhex(v['ciphertext'])
 
 # A generic vector for various tests
@@ -88,7 +90,22 @@ class TripleSec_tests(unittest.TestCase):
         self.assertRaisesRegexp(TripleSecError, regex, lambda: triplesec.decrypt(b'foo', b''))
 
     def test_extra_bytes(self):
-        pass  # TODO
+        extra_vectors = tuple(v for v in vectors if 'extra' in v)
+        self.assertTrue(len(extra_vectors))
+        for VECTOR in extra_vectors:
+            T = TripleSec()
+            self._test_encrypt(T.encrypt, VECTOR['plaintext'], VECTOR['key'])
+            self.assertEqual(None, T.extra_bytes())
+            data = VECTOR['ciphertext']
+            header_version = struct.unpack(">I", data[4:8])[0]
+            version = T.VERSIONS[header_version]
+            header, salt, macs, encrypted_material = T._split_ciphertext(data, version)
+            mac_keys, cipher_keys, extra = T._key_stretching(VECTOR['key'], salt, version, len(VECTOR['extra']))
+            self.assertEqual(VECTOR['extra'], extra)
+            T.encrypt(VECTOR['plaintext'], VECTOR['key'], extra_bytes=len(VECTOR['extra']))
+            self.assertTrue(T.extra_bytes())
+            self._test_encrypt(T.encrypt, VECTOR['plaintext'], VECTOR['key'])
+            self.assertEqual(None, T.extra_bytes())
 
     def test_random_encryption(self):
         for i in range(500 // 20):
