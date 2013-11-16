@@ -1,6 +1,0 @@
-pycrypto>=2.6,<2.7
-scrypt>=0.6,<0.7
-six
-pysha3
-twofish
-salsa20

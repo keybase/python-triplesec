@@ -35,6 +35,12 @@ setup(
                    'Programming Language :: Python :: 3.3',
                    'Topic :: Security :: Cryptography',
                    'Topic :: Software Development :: Libraries'],
-    long_description=open('README.rst').read(),
+    long_description = open('README.rst').read(),
+    install_requires = ["pycrypto",
+                        "scrypt",
+                        "six",
+                        "pysha3",
+                        "twofish",
+                        "salsa20"],
     **params
 )
