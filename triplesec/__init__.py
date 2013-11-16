@@ -228,7 +228,7 @@ def main():
     if len(sys.argv) < 3 or sys.argv[1] not in ('enc', 'dec'):
         print('Command-line TripleSec encryption-decryption tool')
         print('')
-        print('Usage: %s {end|dec} [key] {message|ciphertext}' % sys.argv[0])
+        print('Usage: %s {enc|dec} [key] {message|ciphertext}' % sys.argv[0])
         print('')
         print('Both the key and the message can be specified as text or as hex if prepended with 0x')
         print('The key, if omitted, will be requested')
