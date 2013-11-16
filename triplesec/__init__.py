@@ -23,7 +23,8 @@ from .utils import (
     TripleSecFailedAssertion,
     TripleSecDecryptionError,
     TripleSecError,
-    _constant_time_compare
+    _constant_time_compare,
+    win32_utf8_argv
 )
 from .versions import VERSIONS
 
@@ -225,34 +226,39 @@ decrypt = _t.decrypt
 extra_bytes = _t.extra_bytes
 
 def main():
-    if len(sys.argv) < 3 or sys.argv[1] not in ('enc', 'dec'):
+    argv = win32_utf8_argv() or sys.argv
+    if argv and not isinstance(argv[0], six.text_type):
+        argv = [arg.decode(sys.stdin.encoding) for arg in argv]
+
+    if len(argv) < 3 or argv[1] not in ('enc', 'dec'):
         print('Command-line TripleSec encryption-decryption tool')
         print('')
-        print('Usage: %s {enc|dec} [key] {message|ciphertext}' % sys.argv[0])
+        print('Usage: %s {enc|dec} [key] {message|ciphertext}' % argv[0])
         print('')
         print('Both the key and the message can be specified as text or as hex if prepended with 0x')
         print('The key, if omitted, will be requested')
         sys.exit(1)
 
-    # TODO: handle encodings
-
-    if len(sys.argv) == 3:
-        key = getpass.getpass('Key (will not be printed): ')
-        data = sys.argv[2]
+    if len(argv) == 3:
+        key = getpass.getpass('Key (will not be printed): ').decode(sys.stdin.encoding)
+        data = argv[2]
     else:
-        key = sys.argv[2]
-        data = sys.argv[3]
+        key = argv[2]
+        data = argv[3]
 
-    if key.startswith('0x'):
+    key = key.encode('utf-8')
+    data = data.encode('utf-8')
+
+    if key.startswith(b'0x'):
         key = binascii.unhexlify(key[2:])
-    if data.startswith('0x') and sys.argv[1] == 'enc':
+    if data.startswith(b'0x') and argv[1] == 'enc':
         data = binascii.unhexlify(data[2:])
 
     try:
-        if sys.argv[1] == 'enc':
-            print(binascii.hexlify(encrypt(data, key)))
-        if sys.argv[1] == 'dec':
-            print(decrypt(binascii.unhexlify(data), key))
+        if argv[1] == 'enc':
+            print(binascii.hexlify(encrypt(data, key)).decode())
+        if argv[1] == 'dec':
+            print(decrypt(binascii.unhexlify(data), key).decode(sys.stdout.encoding))
     except TripleSecError as e:
         sys.stderr.write('ERROR: ')
         sys.stderr.write(e.args[0])
