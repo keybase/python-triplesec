@@ -4,14 +4,15 @@ python:
   - 2.6
   - 2.7
   - 3.3
-before_install:
+install:
   - pip install -e .
-  - pip install nose coverage coveralls --use-mirrors
   - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
 script:
-  nosetests --with-coverage --cover-package=triplesec --verbose
+  nosetests --verbose
 notifications:
   email:
     - filippo.valsorda@gmail.com
 after_success:
-  coveralls
+  - pip install coveralls
+  - coverage run --source=triplesec setup.py -q nosetests
+  - coveralls

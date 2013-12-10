@@ -1,7 +1,8 @@
 import binascii
-try:
+import sys
+if sys.version_info < (2, 7):
     import unittest2 as unittest
-except ImportError:
+else:
     import unittest
 from triplesec.crypto import PBKDF2, XOR_HMAC_SHA3_SHA512
 from triplesec.utils import PBKDF2_params

@@ -5,6 +5,8 @@ Released under The BSD 3-Clause License
 Copyright (c) 2013 Keybase
 """
 
+import sys
+
 try:
     from setuptools import setup
     setuptools_available = True
@@ -18,6 +20,9 @@ if setuptools_available:
     params['entry_points'] = {'console_scripts': ['triplesec = triplesec:main']}
 else:
     params['scripts'] = ['bin/triplesec']
+
+tests_require = ['nose']
+if sys.version_info < (2, 7): tests_require.append('unittest2')
 
 setup(
     name = 'TripleSec',
@@ -42,5 +47,7 @@ setup(
                         "pysha3",
                         "twofish",
                         "salsa20"],
+    test_suite = 'nose.collector',
+    tests_require = tests_require,
     **params
 )
