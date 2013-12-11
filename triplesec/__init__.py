@@ -226,42 +226,100 @@ decrypt = _t.decrypt
 extra_bytes = _t.extra_bytes
 
 def main():
-    argv = win32_utf8_argv() or sys.argv
-    if argv and not isinstance(argv[0], six.text_type):
-        argv = [arg.decode(sys.stdin.encoding) for arg in argv]
+    import argparse
+    import os
 
-    if len(argv) < 3 or argv[1] not in ('enc', 'dec'):
-        print('Command-line TripleSec encryption-decryption tool')
-        print('')
-        print('Usage: %s {enc|dec} [key] {message|ciphertext}' % argv[0])
-        print('')
-        print('Both the key and the message can be specified as text or as hex if prepended with 0x')
-        print('The key, if omitted, will be requested')
-        sys.exit(1)
+    parser = argparse.ArgumentParser('triplesec')
 
-    if len(argv) == 3:
-        key = getpass.getpass('Key (will not be printed): ').decode(sys.stdin.encoding)
-        data = argv[2]
+    parser.add_argument('-b', '--binary', action='store_true',
+        help="consider all input (key, plaintext, ciphertext) to be plain binary data "
+        "and output everything as binary data - this turns off smart decoding/encoding")
+    parser.add_argument('--hex', action='store_true',
+        help="consider all input (key, plaintext, ciphertext) to be hex encoded; "
+        "hex encode all output")
+    parser.add_argument('-k', '--key', help="the TripleSec key; "
+        "if not specified will check the TRIPLESEC_KEY env variable, "
+        "then prompt the user for it")
+
+    subparsers = parser.add_subparsers(metavar='{enc|dec}', dest='_command')
+
+    subparsers.add_parser('enc', help='encrypt and sign a message with TripleSec; '
+        "by default output a hex encoded ciphertext (see -b and --hex)")
+    subparsers.add_parser('dec', help='decrypt and verify a TripleSec ciphertext')
+
+    parser.add_argument('data', help='the TripleSec message or ciphertext; '
+        'if not specified it will be read from stdin; '
+        'by default ciphertexts will be considered hex encoded '
+        '(see -b and --hex)', nargs='?')
+
+    args = parser.parse_args()
+
+    if args.binary or args.hex:
+        # Patch various stuff to be binary cross-Python-versions
+        if six.PY3: args = parser.parse_args(map(os.fsencode, sys.argv[1:]))
+        stdin = getattr(sys.stdin, 'buffer', sys.stdin)
+        getenvb = getattr(os, 'getenvb', os.getenv)
+
+        key = args.key or getenvb('TRIPLESEC_KEY') or getpass.getpass('Key (will not be printed): ')
+        if isinstance(key, six.text_type): key = key.encode(sys.stdin.encoding, 'surrogateescape')
+
+        if args.hex: key = binascii.unhexlify(key)
+
+        data = args.data or stdin.read()
+        assert isinstance(data, six.binary_type)
+
+        if args.hex: data = binascii.unhexlify(data)
+
     else:
-        key = argv[2]
-        data = argv[3]
+        # Try to get Unicode objects and encode them in utf-8
+        argv = win32_utf8_argv() or sys.argv
+        if argv and not isinstance(argv[0], six.text_type):
+            argv = [arg.decode(sys.stdin.encoding) for arg in argv]
 
-    key = key.encode('utf-8')
-    data = data.encode('utf-8')
+        args = parser.parse_args(argv[1:])
 
-    if key.startswith(b'0x'):
-        key = binascii.unhexlify(key[2:])
-    if data.startswith(b'0x') and argv[1] == 'enc':
-        data = binascii.unhexlify(data[2:])
+        if args.key:
+            key = args.key
+        elif os.getenv('TRIPLESEC_KEY'):
+            key = os.getenv('TRIPLESEC_KEY')
+            if not isinstance(key, six.text_type):
+                key = key.decode(sys.getfilesystemencoding(), 'replace')
+        else:
+            key = getpass.getpass('Key (will not be printed): ')
+            if not isinstance(key, six.text_type):
+                key = key.decode(sys.stdin.encoding, 'replace')
+
+        assert isinstance(key, six.text_type)
+        key = key.encode('utf-8')
+
+        if args.data:
+            data = args.data
+        else:
+            data = sys.stdin.read()
+            if not isinstance(data, six.text_type):
+                data = data.decode(sys.stdin.encoding, 'replace')
+
+        assert isinstance(data, six.text_type)
+        data = data.encode('utf-8')
 
     try:
-        if argv[1] == 'enc':
-            print(binascii.hexlify(encrypt(data, key)).decode())
-        if argv[1] == 'dec':
-            print(decrypt(binascii.unhexlify(data), key).decode(sys.stdout.encoding))
+        if args._command == 'dec':
+            ciphertext = data if args.binary else binascii.unhexlify(data)
+            plaintext = decrypt(ciphertext, key)
+            if args.binary or args.hex:
+                stdout = getattr(sys.stdout, 'buffer', sys.stdout)
+                stdout.write(binascii.hexlify(plaintext) if args.hex else plaintext)
+            else:
+                sys.stdout.write(plaintext.decode('utf-8', 'replace'))
+
+        elif args._command == 'enc':
+            plaintext = data
+            ciphertext = encrypt(plaintext, key)
+            stdout = getattr(sys.stdout, 'buffer', sys.stdout)
+            stdout.write(ciphertext if args.binary else binascii.hexlify(ciphertext))
+
     except TripleSecError as e:
         sys.stderr.write('ERROR: ')
         sys.stderr.write(e.args[0])
         sys.stderr.write('\n')
         sys.exit(1)
-
