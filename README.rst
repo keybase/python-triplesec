@@ -54,10 +54,26 @@ Here is the help::
 
   Command-line TripleSec encryption-decryption tool
 
-  Usage: triplesec {enc|dec} [key] {message|ciphertext}
+  usage: triplesec [-h] [-b | --hex] [-k KEY] {enc|dec} [data]
 
-  Both the key and the message can be specified as text or as hex if prepended with 0x
-  The key, if omitted, will be requested
+  positional arguments:
+    {enc|dec}          enc: encrypt and sign a message with TripleSec; by
+                       default output a hex encoded ciphertext (see -b and
+                       --hex) -- dec: decrypt and verify a TripleSec ciphertext
+    data               the TripleSec message or ciphertext; if not specified it
+                       will be read from stdin; by default ciphertexts will be
+                       considered hex encoded (see -b and --hex)
+
+  optional arguments:
+    -h, --help         show this help message and exit
+    -b, --binary       consider all input (key, plaintext, ciphertext) to be
+                       plain binary data and output everything as binary data -
+                       this turns off smart decoding/encoding - if you pipe
+                       data, you should use this
+    --hex              consider all input (key, plaintext, ciphertext) to be hex
+                       encoded; hex encode all output
+    -k KEY, --key KEY  the TripleSec key; if not specified will check the
+                       TRIPLESEC_KEY env variable, then prompt the user for it
 
 API
 ---
