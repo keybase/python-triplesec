@@ -14,8 +14,9 @@ import binascii
 import sys
 from six.moves import zip
 from collections import namedtuple
-if sys.version_info < (3, 4):
-    import sha3
+if sys.version_info > (3, 2):
+    if 'sha3_512' not in hashlib.algorithms_available:
+        import sha3
 
 
 MAGIC_BYTES = binascii.unhexlify(b'1c94d7de')
