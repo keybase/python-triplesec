@@ -121,6 +121,6 @@ def win32_utf8_argv():
             else:
                 start = 0
             return [argv[i].encode('utf-8') for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
     except Exception:
         pass
