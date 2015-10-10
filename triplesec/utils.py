@@ -56,20 +56,25 @@ def _constant_time_compare(a, b):
     result = 0
     for x, y in zip(six.iterbytes(a), six.iterbytes(b)):
         result |= x ^ y
-    return (result == 0)
+    return result == 0
 
 class new_sha3_512:
     block_size = 72
     digest_size = 64
+
     def __init__(self, string=b''):
         self._obj = hashlib.sha3_512()
         self._obj.update(string)
+
     def digest(self):
         return self._obj.digest()
+
     def hexdigest(self):
         return self._obj.hexdigest()
+
     def update(self, string):
         return self._obj.update(string)
+
     def copy(self):
         copy = new_sha3_512()
         copy._obj = self._obj.copy()
