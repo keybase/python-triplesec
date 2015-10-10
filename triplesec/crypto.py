@@ -27,14 +27,18 @@ from .utils import (
     sha3_512
 )
 
+def validate_key_size(key, key_size, algorithm):
+    if len(key) != key_size:
+        raise TripleSecFailedAssertion(u"Wrong {algo} key size"
+                                       .format(algo=algorithm))
+
 class AES:
     key_size = 32
     block_size = 16
 
     @classmethod
     def encrypt(cls, data, key):
-        if len(key) != cls.key_size:
-            raise TripleSecFailedAssertion(u"Wrong AES key size")
+        validate_key_size(key, cls.key_size, "AES")
 
         iv = rndfile.read(cls.block_size)
         ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
@@ -45,8 +49,7 @@ class AES:
 
     @classmethod
     def decrypt(cls, data, key):
-        if len(key) != cls.key_size:
-            raise TripleSecFailedAssertion(u"Wrong AES key size")
+        validate_key_size(key, cls.key_size, "AES")
 
         iv = data[:cls.block_size]
         ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
@@ -68,8 +71,7 @@ class Twofish:
 
     @classmethod
     def encrypt(cls, data, key):
-        if len(key) != cls.key_size:
-            raise TripleSecFailedAssertion(u"Wrong Twofish key size")
+        validate_key_size(key, cls.key_size, "Twofish")
 
         iv = rndfile.read(cls.block_size)
         ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
@@ -80,8 +82,7 @@ class Twofish:
 
     @classmethod
     def decrypt(cls, data, key):
-        if len(key) != cls.key_size:
-            raise TripleSecFailedAssertion(u"Wrong Twofish key size")
+        validate_key_size(key, cls.key_size, "Twofish")
 
         iv = data[:cls.block_size]
         ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
@@ -95,8 +96,7 @@ class XSalsa20:
 
     @classmethod
     def encrypt(cls, data, key):
-        if len(key) != cls.key_size:
-            raise TripleSecFailedAssertion(u"Wrong XSalsa20 key size")
+        validate_key_size(key, cls.key_size, "XSalsa20")
 
         iv = rndfile.read(cls.iv_size)
 
@@ -105,8 +105,7 @@ class XSalsa20:
 
     @classmethod
     def decrypt(cls, data, key):
-        if len(key) != cls.key_size:
-            raise TripleSecFailedAssertion(u"Wrong XSalsa20 key size")
+        validate_key_size(key, cls.key_size, "XSalsa20")
 
         iv = data[:cls.iv_size]
 
