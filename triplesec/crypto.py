@@ -32,7 +32,30 @@ def validate_key_size(key, key_size, algorithm):
         raise TripleSecFailedAssertion(u"Wrong {algo} key size"
                                        .format(algo=algorithm))
 
-class AES:
+class BlockCipher(object):
+
+    @classmethod
+    def generate_counter(cls, block_size, iv):
+        ctr = Counter.new(block_size * 8,
+                          initial_value=int(binascii.hexlify(iv), 16))
+        return ctr
+
+    @classmethod
+    def generate_encrypt_iv_counter(cls, block_size):
+        iv = rndfile.read(block_size)
+        ctr = cls.generate_counter(block_size, iv)
+
+        return iv, ctr
+
+    @classmethod
+    def generate_decrypt_counter(cls, data, block_size):
+        iv = data[:block_size]
+        ctr = cls.generate_counter(block_size, iv)
+
+        return ctr
+
+
+class AES(object):
     key_size = 32
     block_size = 16
 
@@ -40,9 +63,7 @@ class AES:
     def encrypt(cls, data, key):
         validate_key_size(key, cls.key_size, "AES")
 
-        iv = rndfile.read(cls.block_size)
-        ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
-
+        iv, ctr = BlockCipher.generate_encrypt_iv_counter(cls.block_size)
         ciphertext = Crypto_AES.new(key, Crypto_AES.MODE_CTR,
                                     counter=ctr).encrypt(data)
         return iv + ciphertext
@@ -51,44 +72,42 @@ class AES:
     def decrypt(cls, data, key):
         validate_key_size(key, cls.key_size, "AES")
 
-        iv = data[:cls.block_size]
-        ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
+        ctr = BlockCipher.generate_decrypt_counter(data, cls.block_size)
 
         return Crypto_AES.new(key, Crypto_AES.MODE_CTR,
                               counter=ctr).decrypt(data[cls.block_size:])
 
-class Twofish:
+class Twofish(object):
     key_size = 32
     block_size = 16
 
     @classmethod
-    def _gen_keystream(cls, length, T, ctr):
+    def _gen_keystream(cls, length, tfish, ctr):
         req_blocks = length // cls.block_size + 1
         keystream = b''
         for _ in range(req_blocks):
-            keystream += T.encrypt(ctr())
+            keystream += tfish.encrypt(ctr())
         return keystream[:length]
 
     @classmethod
     def encrypt(cls, data, key):
         validate_key_size(key, cls.key_size, "Twofish")
 
-        iv = rndfile.read(cls.block_size)
-        ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
+        iv, ctr = BlockCipher.generate_encrypt_iv_counter(cls.block_size)
+        tfish = twofish.Twofish(key)
+        ciphertext = strxor(data, cls._gen_keystream(len(data), tfish, ctr))
 
-        T = twofish.Twofish(key)
-        ciphertext = strxor(data, cls._gen_keystream(len(data), T, ctr))
         return iv + ciphertext
 
     @classmethod
     def decrypt(cls, data, key):
         validate_key_size(key, cls.key_size, "Twofish")
 
-        iv = data[:cls.block_size]
-        ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
+        ctr = BlockCipher.generate_decrypt_counter(data, cls.block_size)
+        tfish = twofish.Twofish(key)
 
-        T = twofish.Twofish(key)
-        return strxor(data[cls.block_size:], cls._gen_keystream(len(data[cls.block_size:]), T, ctr))
+        return strxor(data[cls.block_size:],
+                      cls._gen_keystream(len(data[cls.block_size:]), tfish, ctr))
 
 class XSalsa20:
     key_size = 32
@@ -99,8 +118,8 @@ class XSalsa20:
         validate_key_size(key, cls.key_size, "XSalsa20")
 
         iv = rndfile.read(cls.iv_size)
-
         ciphertext = salsa20.XSalsa20_xor(data, iv, key)
+
         return iv + ciphertext
 
     @classmethod
