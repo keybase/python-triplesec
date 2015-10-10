@@ -40,7 +40,7 @@ class AES:
         ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
 
         ciphertext = Crypto_AES.new(key, Crypto_AES.MODE_CTR,
-            counter=ctr).encrypt(data)
+                                    counter=ctr).encrypt(data)
         return iv + ciphertext
 
     @classmethod
@@ -52,7 +52,7 @@ class AES:
         ctr = Counter.new(cls.block_size*8, initial_value=int(binascii.hexlify(iv), 16))
 
         return Crypto_AES.new(key, Crypto_AES.MODE_CTR,
-            counter=ctr).decrypt(data[cls.block_size:])
+                              counter=ctr).decrypt(data[cls.block_size:])
 
 class Twofish:
     key_size = 32
