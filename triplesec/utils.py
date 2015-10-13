@@ -52,24 +52,30 @@ class TripleSecFailedAssertion(TripleSecError):
 
 ### UTILITIES
 def _constant_time_compare(a, b):
-    if len(a) != len(b): return False
+    if len(a) != len(b):
+        return False
     result = 0
     for x, y in zip(six.iterbytes(a), six.iterbytes(b)):
         result |= x ^ y
-    return (result == 0)
+    return result == 0
 
-class new_sha3_512:
+class new_sha3_512(object):
     block_size = 72
     digest_size = 64
+
     def __init__(self, string=b''):
         self._obj = hashlib.sha3_512()
         self._obj.update(string)
+
     def digest(self):
         return self._obj.digest()
+
     def hexdigest(self):
         return self._obj.hexdigest()
+
     def update(self, string):
         return self._obj.update(string)
+
     def copy(self):
         copy = new_sha3_512()
         copy._obj = self._obj.copy()
@@ -116,6 +122,6 @@ def win32_utf8_argv():
             else:
                 start = 0
             return [argv[i].encode('utf-8') for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
     except Exception:
         pass
