@@ -90,6 +90,27 @@ class TripleSec():
         tot += sum(c.overhead_size for c in version.ciphers)
         return tot
 
+    def encrypt_ascii(self, data, key=None, v=None, extra_bytes=0,
+                      digest="hex"):
+        """
+        Encrypt data and return as ascii string. Hexadecimal digest as default.
+
+        Avaiable digests:
+            hex: Hexadecimal
+            base64: Base 64
+            hqx: hexbin4
+        """
+        digests = {"hex": binascii.b2a_hex,
+                   "base64": binascii.b2a_base64,
+                   "hqx": binascii.b2a_hqx}
+        digestor = digests.get(digest)
+        if not digestor:
+            TripleSecError(u"Digestor not supported.")
+
+        binary_result = self.encrypt(data, key, v, extra_bytes)
+        result = digestor(binary_result)
+        return result
+
     def encrypt(self, data, key=None, v=None, extra_bytes=0):
         self._check_data(data)
         self._check_key(key)
@@ -138,6 +159,26 @@ class TripleSec():
             key = cipher_keys[n]
             data = c.implementation.encrypt(data, key)
         return data
+
+    def decrypt_ascii(self, ascii_string, key=None, digest="hex"):
+        """
+        Receive ascii string and return decrypted data.
+
+        Avaiable digests:
+            hex: Hexadecimal
+            base64: Base 64
+            hqx: hexbin4
+        """
+        digests = {"hex": binascii.a2b_hex,
+                   "base64": binascii.a2b_base64,
+                   "hqx": binascii.a2b_hqx}
+        digestor = digests.get(digest)
+        if not digestor:
+            TripleSecError(u"Digestor not supported.")
+
+        binary_string = digestor(ascii_string)
+        result = self.decrypt(binary_string, key)
+        return result
 
     def decrypt(self, data, key=None):
         self._check_data(data)
@@ -223,7 +264,10 @@ class TripleSec():
 _t = TripleSec()
 encrypt = _t.encrypt
 decrypt = _t.decrypt
+encrypt_ascii = _t.encrypt_ascii
+decrypt_ascii = _t.decrypt_ascii
 extra_bytes = _t.extra_bytes
+
 
 def main():
     import argparse
