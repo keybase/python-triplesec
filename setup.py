@@ -41,7 +41,7 @@ setup(
                    'Topic :: Security :: Cryptography',
                    'Topic :: Software Development :: Libraries'],
     long_description = open('README.rst').read(),
-    install_requires = ["pycrypto",
+    install_requires = ["pycryptodome",
                         "scrypt",
                         "six",
                         "pysha3",
