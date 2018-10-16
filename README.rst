@@ -1,9 +1,9 @@
 python-triplesec
 ================
 
-.. image:: https://travis-ci.org/keybase/python-triplesec.png
+.. image:: https://travis-ci.org/mfrager/python-triplesec.png
    :alt: Build Status
-   :target: https://travis-ci.org/keybase/python-triplesec
+   :target: https://travis-ci.org/mfrager/python-triplesec
 
 .. image:: https://coveralls.io/repos/keybase/python-triplesec/badge.png
    :alt: Coverage Status
