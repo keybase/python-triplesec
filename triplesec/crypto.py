@@ -32,6 +32,28 @@ def validate_key_size(key, key_size, algorithm):
         raise TripleSecFailedAssertion(u"Wrong {algo} key size"
                                        .format(algo=algorithm))
 
+class CounterWrapper:
+    def __init__(self, counter):
+        self.counter = counter
+
+    def __call__(self):
+        counter_len = self.counter["counter_len"]
+        prefix = self.counter["prefix"]
+        suffix = self.counter["suffix"]
+        initial_value = self.counter["initial_value"]
+        little_endian = self.counter["little_endian"]
+        # Compute counter block
+        words = []
+        while initial_value > 0:
+            words.append(struct.pack('B', initial_value & 255))
+            initial_value >>= 8
+        words += [ b'\x00' ] * max(0, counter_len - len(words))
+        if not little_endian:
+            words.reverse()
+        counter_block = prefix + b"".join(words) + suffix
+        self.counter["initial_value"] += 1
+        return counter_block
+
 class BlockCipher(object):
 
     @classmethod
@@ -94,6 +116,7 @@ class Twofish(object):
         validate_key_size(key, cls.key_size, "Twofish")
 
         iv, ctr = BlockCipher.generate_encrypt_iv_counter(cls.block_size)
+        ctr = CounterWrapper(ctr)
         tfish = twofish.Twofish(key)
         ciphertext = strxor(data, cls._gen_keystream(len(data), tfish, ctr))
 
@@ -104,6 +127,7 @@ class Twofish(object):
         validate_key_size(key, cls.key_size, "Twofish")
 
         ctr = BlockCipher.generate_decrypt_counter(data, cls.block_size)
+        ctr = CounterWrapper(ctr)
         tfish = twofish.Twofish(key)
 
         return strxor(data[cls.block_size:],

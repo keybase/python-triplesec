@@ -18,9 +18,9 @@ python-triplesec
    :target: https://crate.io/packages/TripleSec
 
 
-A Python port of the TripleSec_ library. See also the JS implementation_.
+A Python port of the TripleSec_ library. The Python version is NOT binary compatible with other TripleSec versions.
 
-Compatible with Python 2.6, 2.7 and 3.3.
+Compatible with Python 3.
 
 .. _TripleSec: https://keybase.io/triplesec/
 .. _implementation: https://github.com/keybase/triplesec/
@@ -38,7 +38,7 @@ Usage
 
 Instantiate a ``triplesec.TripleSec(key=None)`` object, with or without a key (if omitted it will have to be specified at each use), then use the ``encrypt(message, key=None)`` and ``decrypt(ciphertext, key=None)`` methods.
 
-All values must be binary strings (``str`` on Python 2, ``bytes`` on Python 3)
+All values must be binary strings (``bytes`` on Python 3)
 
 Shortcuts
 ~~~~~~~~~
