@@ -32,6 +32,25 @@ def validate_key_size(key, key_size, algorithm):
         raise TripleSecFailedAssertion(u"Wrong {algo} key size"
                                        .format(algo=algorithm))
 
+def check_and_increment_counter(ctr):
+    # This function is adapted from pycryptodome's source code at
+    # https://github.com/Legrandin/pycryptodome/blob/39626a5b01ce5c1cf51d022be166ad0aea722177/lib/Crypto/Cipher/_mode_ctr.py#L366
+    counter_len = ctr["counter_len"]
+    prefix = ctr["prefix"]
+    suffix = ctr["suffix"]
+    initial_value = ctr["initial_value"]
+    little_endian = ctr["little_endian"]
+    words = []
+    while initial_value > 0:
+        words.append(struct.pack('B', initial_value & 255))
+        initial_value >>= 8
+    words += [ b'\x00' ] * max(0, counter_len - len(words))
+    if not little_endian:
+        words.reverse()
+    counter_block = prefix + b"".join(words) + suffix
+    ctr["initial_value"] += 1
+    return counter_block
+
 class BlockCipher(object):
 
     @classmethod
@@ -86,7 +105,7 @@ class Twofish(object):
         req_blocks = length // cls.block_size + 1
         keystream = b''
         for _ in range(req_blocks):
-            keystream += tfish.encrypt(ctr())
+            keystream += tfish.encrypt(check_and_increment_counter(ctr))
         return keystream[:length]
 
     @classmethod
