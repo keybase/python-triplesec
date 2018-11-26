@@ -26,10 +26,10 @@ if sys.version_info < (2, 7): tests_require.append('unittest2')
 
 setup(
     name = 'TripleSec',
-    version = '0.4',
+    version = '0.5',
     description = 'a Python implementation of TripleSec',
-    author = 'Filippo Valsorda',
-    author_email = 'filippo.valsorda@gmail.com',
+    author = 'Keybase',
+    author_email = 'max@keybase.io',
     url = 'http://github.com/keybase/python-triplesec',
     packages = ['triplesec'],
     license = 'BSD-new',
@@ -41,7 +41,7 @@ setup(
                    'Topic :: Security :: Cryptography',
                    'Topic :: Software Development :: Libraries'],
     long_description = open('README.rst').read(),
-    install_requires = ["pycrypto",
+    install_requires = ["pycryptodome",
                         "scrypt",
                         "six",
                         "pysha3",

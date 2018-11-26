@@ -80,6 +80,13 @@ API
 
 Sphinx documentation coming soon.
 
+Changes in 0.5
+-----------------------
+For message authentication, the Triplesec spec uses the Keccak SHA3 proposal function for versions 1 through 3, but for some time, this library used the standardized SHA3-512 function instead. Thus, the Python implementation for versions 1 through 3 is incompatible with the JavaScript and Golang implementations.
+From version 4 and going forward, the spec will use only the standardized SHA3-512 function (provided, for example, by `hashlib` in Python), and the Python, JavaScript, and Golang implementations will be compatible.
+
+Additionally, invocations that do not specify a version will now use version 4 by default, which is incompatible with previous versions.
+
 Example
 -------
 

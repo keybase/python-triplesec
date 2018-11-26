@@ -1,0 +1,6 @@
+pycryptodome
+scrypt
+six
+pysha3
+twofish
+salsa20

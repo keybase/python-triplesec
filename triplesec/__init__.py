@@ -31,7 +31,7 @@ from .versions import VERSIONS
 
 ### MAIN CLASS
 class TripleSec():
-    LATEST_VERSION = 3
+    LATEST_VERSION = max(VERSIONS.keys())
     MAGIC_BYTES = MAGIC_BYTES
 
     VERSIONS = VERSIONS
