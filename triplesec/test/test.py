@@ -149,3 +149,32 @@ class TripleSec_tests(unittest.TestCase):
             '4848297feb1fb52fb66d81609bd547fabcbe7026edc8b5e5e449d088bfa69c088f5d8da1d791267c2c195a7f8cae9c4b4050d08ce6d3a151ec265f3a58e47648')
         self.assertEqual(b'\x00' * 64, triplesec.crypto.XSalsa20.decrypt(ciphertext,
             b'this is 32-byte key for xsalsa20'))
+
+    def test_spec(self):
+        for version in [1]:
+            print(version)
+            keccak_compatibility = True if version in [1, 3] else False
+            path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
+            vectors = json.load(open(os.path.join(path, "spec/triplesec_v{}.json".format(version))))
+            for v in vectors['vectors']:
+                key = unhex(v['key'])
+                pt = unhex(v['pt'])
+                ct = unhex(v['ct'])
+
+                # Self-consistency
+                self.assertEqual(pt, triplesec.decrypt(triplesec.encrypt(pt, key, keccak_compatibility=keccak_compatibility), key, keccak_compatibility=keccak_compatibility))
+
+                # Able to decrypt spec
+                self.assertEqual(pt, triplesec.decrypt(ct, key, keccak_compatibility=keccak_compatibility))
+
+                # if pass_key: ciphertext = encrypt(plaintext, key)
+                # else: ciphertext = encrypt(plaintext)
+
+                # self.assertEqual(plaintext, triplesec.decrypt(ciphertext, key))
+
+                # for k in v:
+                #     v[k] = v[k].encode('ascii') # JSON insists to decode the loaded objects
+                #     if v[k].startswith(b'0x'): v[k] = unhex(v[k][2:])
+                # if 'extra' in v: v['extra'] = unhex(v['extra'])
+                # v['ciphertext'] = unhex(v['ciphertext'])
+
