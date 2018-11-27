@@ -10,6 +10,7 @@ used across the codebase.
 
 import hashlib
 import six
+import array
 import binascii
 import sys
 from six.moves import zip
@@ -150,3 +151,8 @@ def win32_utf8_argv():
                     range(start, argc.value)]
     except Exception:
         pass
+
+def word_byteswap(xs):
+    y = array.array("I", xs)
+    y.byteswap()
+    return y.tobytes()

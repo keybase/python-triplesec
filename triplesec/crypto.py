@@ -25,7 +25,8 @@ from .utils import (
     TripleSecFailedAssertion,
     TripleSecError,
     sha3_512,
-    keccak
+    keccak,
+    word_byteswap
 )
 
 def validate_key_size(key, key_size, algorithm):
@@ -133,22 +134,42 @@ class XSalsa20:
     key_size = 32
     iv_size = 24
 
+    # TODO not sure if enc works.... test ->
     @classmethod
-    def encrypt(cls, data, key):
+    def encrypt(cls, data, key, reverse_endianness=False):
         validate_key_size(key, cls.key_size, "XSalsa20")
+        if reverse_endianness:
+            key = word_byteswap(key)
 
         iv = rndfile.read(cls.iv_size)
+        if reverse_endianness:
+            iv = word_byteswap(iv)
         ciphertext = salsa20.XSalsa20_xor(data, iv, key)
+        if reverse_endianness:
+            iv = word_byteswap(iv)
 
         return iv + ciphertext
 
     @classmethod
-    def decrypt(cls, data, key):
+    def decrypt(cls, data, key, reverse_endianness=False):
         validate_key_size(key, cls.key_size, "XSalsa20")
+        if reverse_endianness:
+            key = word_byteswap(key)
 
         iv = data[:cls.iv_size]
+        if reverse_endianness:
+            iv = word_byteswap(iv)
 
         return salsa20.XSalsa20_xor(data[cls.iv_size:], iv, key)
+
+class XSalsa20Reversed:
+    @classmethod
+    def encrypt(cls, data, key):
+        return XSalsa20.encrypt(data, key, reverse_endianness=True)
+
+    @classmethod
+    def decrypt(cls, data, key):
+        return XSalsa20.decrypt(data, key, reverse_endianness=True)
 
 def HMAC_SHA512(data, key):
     return hmac.new(key, data, hashlib.sha512).digest()

@@ -29,6 +29,7 @@ from .crypto import (
     XOR_HMAC_SHA3_SHA512,
     XOR_HMAC_KECCAK_SHA512,
     XSalsa20,
+    XSalsa20Reversed,
     Twofish,
     AES
 )
@@ -36,7 +37,7 @@ from .crypto import (
 LATEST_VERSION = 4
 
 _versions = {}
-_versions[4] = Constants(
+_versions[4] = lambda keccak_compatibility: Constants(
     header = [ MAGIC_BYTES, struct.pack(">I", 4) ],
     salt_size = 16,
 
@@ -64,7 +65,7 @@ _versions[4] = Constants(
                        overhead_size = AES.block_size,
                        key_size = AES.key_size) ])
 
-_versions[3] = Constants(
+_versions[3] = lambda keccak_compatibility: Constants(
     header = [ MAGIC_BYTES, struct.pack(">I", 3) ],
     salt_size = 16,
 
@@ -79,7 +80,7 @@ _versions[3] = Constants(
                  key_size = 48,
                  output_size = 64),
              MAC(name = 'HMAC-SHA3',
-                 implementation = HMAC_SHA3,
+                 implementation = (HMAC_KECCAK if keccak_compatibility else HMAC_SHA3),
                  key_size = 48,
                  output_size = 64) ],
 
@@ -97,26 +98,26 @@ _versions[3] = Constants(
                        key_size = AES.key_size) ])
 
 
-_versions[1] = Constants(
+_versions[1] = lambda keccak_compatibility: Constants(
     header = [ MAGIC_BYTES, struct.pack(">I", 1) ],
     salt_size = 8,
 
     KDF = KDF(name = 'pbkdf2',
               implementation = PBKDF2,
               parameters = PBKDF2_params(i = 1024,
-                                         PRF = XOR_HMAC_SHA3_SHA512)),
+                                         PRF = (XOR_HMAC_KECCAK_SHA512 if keccak_compatibility else XOR_HMAC_SHA3_SHA512))),
 
     MACs = [ MAC(name = 'HMAC-SHA-512',
                  implementation = HMAC_SHA512,
                  key_size = 48,
                  output_size = 64),
              MAC(name = 'HMAC-SHA3',
-                 implementation = HMAC_SHA3,
+                 implementation = (HMAC_KECCAK if keccak_compatibility else HMAC_SHA3),
                  key_size = 48,
                  output_size = 64) ],
 
     ciphers = [ Cipher(name = 'XSalsa20',
-                       implementation = XSalsa20,
+                       implementation = XSalsa20Reversed if keccak_compatibility else XSalsa20,
                        overhead_size = XSalsa20.iv_size,
                        key_size = XSalsa20.key_size),
                 Cipher(name = 'Twofish-CTR',
@@ -128,17 +129,10 @@ _versions[1] = Constants(
                        overhead_size = AES.block_size,
                        key_size = AES.key_size) ])
 
-def get_version(version, keccak_compatibility):
-    if keccak_compatibility and version >= 4:
+def get_version(version_number, keccak_compatibility):
+    if keccak_compatibility and version_number >= 4:
         keccak_compatibility = False
-    version = _versions[version]
-    if keccak_compatibility:
-        mac = version.MACs[1]
-        version.MACs[1] = MAC(name='HMAC-KECCAK', implementation=HMAC_KECCAK, key_size=mac.key_size, output_size=mac.output_size)
-        if version == 1:
-            kdf = version.KDF
-            version.KDF = KDF(name=kdf.name, implementation=kdf.implementation, parameters=PBKDF2_params(i=1024, PRF=XOR_HMAC_KECCAK_SHA512))
-    return version
+    return _versions[version_number](keccak_compatibility)
 
 def valid_version(version):
     return version in _versions
