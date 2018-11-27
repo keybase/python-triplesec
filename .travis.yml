@@ -4,14 +4,15 @@ python:
   - 2.6
   - 2.7
   - 3.3
+  - 3.6
 install:
-  - pip install -e .
+  - pip install requirements.txt
   - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
 script:
   nosetests --verbose
 notifications:
   email:
-    - filippo.valsorda@gmail.com
+    - max@keybase.io
 after_success:
   - pip install coveralls
   - coverage run --source=triplesec setup.py -q nosetests
