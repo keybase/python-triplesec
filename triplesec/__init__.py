@@ -280,7 +280,8 @@ def main():
     group.add_argument('--hex', action='store_true',
         help="consider all input (key, plaintext, ciphertext) to be hex encoded; "
         "hex encode all output")
-    group.add_argument('keccak_compatibility', metavar='keccak-compatibility', action='store_true',
+
+    parser.add_argument('--keccak-compatibility', action='store_true',
         help="Use Keccak instead of SHA3 for the second MAC. Only allowed in versions before 4.")
 
     parser.add_argument('-k', '--key', help="the TripleSec key; "
