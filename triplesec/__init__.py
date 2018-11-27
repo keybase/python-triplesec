@@ -26,15 +26,12 @@ from .utils import (
     _constant_time_compare,
     win32_utf8_argv
 )
-from .versions import VERSIONS
+from .versions import get_version, valid_version, LATEST_VERSION
 
 
 ### MAIN CLASS
 class TripleSec():
-    LATEST_VERSION = max(VERSIONS.keys())
     MAGIC_BYTES = MAGIC_BYTES
-
-    VERSIONS = VERSIONS
 
     @staticmethod
     def _check_key(key):
@@ -111,15 +108,15 @@ class TripleSec():
         result = digestor(binary_result)
         return result
 
-    def encrypt(self, data, key=None, v=None, extra_bytes=0):
+    def encrypt(self, data, key=None, v=None, extra_bytes=0, keccak_compatibility=False):
         self._check_data(data)
         self._check_key(key)
         if key is None and self.key is None:
             raise TripleSecError(u"You didn't initialize TripleSec with a key, so you need to specify one")
         if key is None: key = self.key
 
-        if not v: v = self.LATEST_VERSION
-        version = self.VERSIONS[v]
+        if not v: v = LATEST_VERSION
+        version = get_version(v, keccak_compatibility)
         result, extra = self._encrypt(data, key, version, extra_bytes)
 
         self._check_output_type(result)
@@ -180,7 +177,7 @@ class TripleSec():
         result = self.decrypt(binary_string, key)
         return result
 
-    def decrypt(self, data, key=None):
+    def decrypt(self, data, key=None, keccak_compatibility=False):
         self._check_data(data)
         self._check_key(key)
         if key is None and self.key is None:
@@ -191,10 +188,10 @@ class TripleSec():
             raise TripleSecError(u"This does not look like a TripleSec ciphertext")
 
         header_version = struct.unpack(">I", data[4:8])[0]
-        if header_version not in self.VERSIONS:
+        if not valid_version(header_version):
             raise TripleSecError(u"Unimplemented version: " + str(header_version))
 
-        version = self.VERSIONS[header_version]
+        version = get_version(header_version, keccak_compatibility)
         result = self._decrypt(data, key, version)
 
         self._check_output_type(result)
@@ -283,6 +280,8 @@ def main():
     group.add_argument('--hex', action='store_true',
         help="consider all input (key, plaintext, ciphertext) to be hex encoded; "
         "hex encode all output")
+    group.add_argument('keccak_compatibility', metavar='keccak-compatibility', action='store_true',
+        help="Use Keccak instead of SHA3 for the second MAC. Only allowed in versions before 4.")
 
     parser.add_argument('-k', '--key', help="the TripleSec key; "
         "if not specified will check the TRIPLESEC_KEY env variable, "
@@ -356,7 +355,7 @@ def main():
     try:
         if args._command == 'dec':
             ciphertext = data if args.binary else binascii.unhexlify(data.strip())
-            plaintext = decrypt(ciphertext, key)
+            plaintext = decrypt(ciphertext, key, args.keccak_compatibility)
             if args.binary:
                 getattr(sys.stdout, 'buffer', sys.stdout).write(plaintext)
             elif args.hex:
@@ -366,7 +365,7 @@ def main():
 
         elif args._command == 'enc':
             plaintext = data
-            ciphertext = encrypt(plaintext, key)
+            ciphertext = encrypt(plaintext, key, args.keccak_compatibility)
             stdout = getattr(sys.stdout, 'buffer', sys.stdout)
             stdout.write(ciphertext if args.binary else binascii.hexlify(ciphertext) + b'\n')
 

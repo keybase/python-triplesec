@@ -24,7 +24,8 @@ rndfile = Random.new()
 from .utils import (
     TripleSecFailedAssertion,
     TripleSecError,
-    sha3_512
+    sha3_512,
+    keccak
 )
 
 def validate_key_size(key, key_size, algorithm):
@@ -155,6 +156,9 @@ def HMAC_SHA512(data, key):
 def HMAC_SHA3(data, key):
     return hmac.new(key, data, sha3_512).digest()
 
+def HMAC_KECCAK(data, key):
+    return hmac.new(key, data, keccak).digest()
+
 def Scrypt(key, salt, length, parameters):
     try:
         return scrypt.hash(key, salt, parameters.N, parameters.r, parameters.p, length)
@@ -165,6 +169,11 @@ def XOR_HMAC_SHA3_SHA512(data, key):
     h0 = struct.pack(">I", 0)
     h1 = struct.pack(">I", 1)
     return strxor(HMAC_SHA512(h0 + data, key), HMAC_SHA3(h1 + data, key))
+
+def XOR_HMAC_KECCAK_SHA512(data, key):
+    h0 = struct.pack(">I", 0)
+    h1 = struct.pack(">I", 1)
+    return strxor(HMAC_SHA512(h0 + data, key), HMAC_KECCAK(h1 + data, key))
 
 def PBKDF2(key, salt, length, parameters):
     prf = lambda key, msg: parameters.PRF(msg, key)  # Our convention is different

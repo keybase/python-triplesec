@@ -25,15 +25,18 @@ from .crypto import (
     PBKDF2,
     HMAC_SHA512,
     HMAC_SHA3,
+    HMAC_KECCAK,
     XOR_HMAC_SHA3_SHA512,
+    XOR_HMAC_KECCAK_SHA512,
     XSalsa20,
     Twofish,
     AES
 )
 
-VERSIONS = {}
+LATEST_VERSION = 4
 
-VERSIONS[4] = Constants(
+_versions = {}
+_versions[4] = Constants(
     header = [ MAGIC_BYTES, struct.pack(">I", 4) ],
     salt_size = 16,
 
@@ -61,7 +64,7 @@ VERSIONS[4] = Constants(
                        overhead_size = AES.block_size,
                        key_size = AES.key_size) ])
 
-VERSIONS[3] = Constants(
+_versions[3] = Constants(
     header = [ MAGIC_BYTES, struct.pack(">I", 3) ],
     salt_size = 16,
 
@@ -94,7 +97,7 @@ VERSIONS[3] = Constants(
                        key_size = AES.key_size) ])
 
 
-VERSIONS[1] = Constants(
+_versions[1] = Constants(
     header = [ MAGIC_BYTES, struct.pack(">I", 1) ],
     salt_size = 8,
 
@@ -124,3 +127,18 @@ VERSIONS[1] = Constants(
                        implementation = AES,
                        overhead_size = AES.block_size,
                        key_size = AES.key_size) ])
+
+def get_version(version, keccak_compatibility):
+    if keccak_compatibility and version >= 4:
+        raise ValueError("Cannot use keccak compatibility in versions 4 and later")
+    version = _versions[version]
+    if keccak_compatibility:
+        mac = version.MACs[1]
+        version.MACs[1] = MAC(name='HMAC-KECCAK', implementation=HMAC_KECCAK, key_size=mac.key_size, output_size=mac.output_size)
+        if version == 1:
+            kdf = version.KDF
+            version.KDF = KDF(name=kdf.name, implementation=kdf.implementation, parameters=PBKDF2_params(i=1024, PRF=XOR_HMAC_KECCAK_SHA512))
+    return version
+
+def valid_version(version):
+    return version in _versions
