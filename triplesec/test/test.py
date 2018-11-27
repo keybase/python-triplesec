@@ -132,7 +132,7 @@ class TripleSec_tests(unittest.TestCase):
         inp = unhex('1c94d7de000000019f1d6915ca8035e207292f3f4f88237da9876505dee100dfbda9fd1cd278d3590840109465e5ed347fdeb6fc2ca8c25fa5cf6e317d977f6c5209f46c30055f5c531c')
         key = unhex('1ee5eec12cfbf3cc311b855ddfddf913cff40b3a7dce058c4e46b5ba9026ba971a973144cbf180ceca7d35e1600048d414f7d5399b4ae46732c34d898fa68fbb0dbcea10d84201734e83c824d0f66207cf6f1b6a2ba13b9285329707facbc060')
         out = unhex('aa761d7d39c1503e3f4601f1e331787dca67794357650d76f6408fb9ea37f9eede1f45fcc741a3ec06e9d23be97eb1fbbcbe64bc6b2c010827469a8a0abbb008b11effefe95ddd558026dd2ce83838d7a087e71d8a98e5cbee59f9f788e99dbe7f9032912a4384af760c56da8d7a40ab057796ded052be17a69a6d14e703a621')
-        version = triplesec.versions.get_version(1, keccak_compatibility=True)
+        version = triplesec.versions.get_version(1, compatibility=True)
         self.assertEqual(out, b''.join(TripleSec._generate_macs(inp, [key[:48], key[48:]], version)))
 
     def test_ciphers(self):
@@ -152,7 +152,7 @@ class TripleSec_tests(unittest.TestCase):
 
     def test_spec(self):
         for version in [1, 3, 4]:
-            keccak_compatibility = True if version in [1, 3] else False
+            compatibility = True if version in [1, 3] else False
             path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
             vectors = json.load(open(os.path.join(path, "spec/triplesec_v{}.json".format(version))))
             for v in vectors['vectors']:
@@ -161,7 +161,7 @@ class TripleSec_tests(unittest.TestCase):
                 ct = unhex(v['ct'])
 
                 # Self-consistency
-                self.assertEqual(pt, triplesec.decrypt(triplesec.encrypt(pt, key, keccak_compatibility=keccak_compatibility), key, keccak_compatibility=keccak_compatibility))
+                self.assertEqual(pt, triplesec.decrypt(triplesec.encrypt(pt, key, compatibility=compatibility), key, compatibility=compatibility))
 
                 # Able to decrypt spec
-                self.assertEqual(pt, triplesec.decrypt(ct, key, keccak_compatibility=keccak_compatibility))
+                self.assertEqual(pt, triplesec.decrypt(ct, key, compatibility=compatibility))

@@ -155,4 +155,7 @@ def win32_utf8_argv():
 def word_byteswap(xs):
     y = array.array("I", xs)
     y.byteswap()
-    return y.tobytes()
+    if six.PY2:
+        return y.tostring()
+    else:
+        return y.tobytes()

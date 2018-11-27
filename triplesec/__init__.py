@@ -108,7 +108,7 @@ class TripleSec():
         result = digestor(binary_result)
         return result
 
-    def encrypt(self, data, key=None, v=None, extra_bytes=0, keccak_compatibility=False):
+    def encrypt(self, data, key=None, v=None, extra_bytes=0, compatibility=False):
         self._check_data(data)
         self._check_key(key)
         if key is None and self.key is None:
@@ -116,7 +116,7 @@ class TripleSec():
         if key is None: key = self.key
 
         if not v: v = LATEST_VERSION
-        version = get_version(v, keccak_compatibility)
+        version = get_version(v, compatibility)
         result, extra = self._encrypt(data, key, version, extra_bytes)
 
         self._check_output_type(result)
@@ -177,7 +177,7 @@ class TripleSec():
         result = self.decrypt(binary_string, key)
         return result
 
-    def decrypt(self, data, key=None, keccak_compatibility=False):
+    def decrypt(self, data, key=None, compatibility=False):
         self._check_data(data)
         self._check_key(key)
         if key is None and self.key is None:
@@ -191,7 +191,7 @@ class TripleSec():
         if not valid_version(header_version):
             raise TripleSecError(u"Unimplemented version: " + str(header_version))
 
-        version = get_version(header_version, keccak_compatibility)
+        version = get_version(header_version, compatibility)
         result = self._decrypt(data, key, version)
 
         self._check_output_type(result)
@@ -281,8 +281,8 @@ def main():
         help="consider all input (key, plaintext, ciphertext) to be hex encoded; "
         "hex encode all output")
 
-    parser.add_argument('--keccak-compatibility', action='store_true',
-        help="Use Keccak instead of SHA3 for the second MAC. Only effective in versions before 4.")
+    parser.add_argument('--compatibility', action='store_true',
+        help="Use Keccak instead of SHA3 for the second MAC and reverse endianness of Salsa20 in version 1. Only effective in versions before 4.")
 
     parser.add_argument('-k', '--key', help="the TripleSec key; "
         "if not specified will check the TRIPLESEC_KEY env variable, "
@@ -356,7 +356,7 @@ def main():
     try:
         if args._command == 'dec':
             ciphertext = data if args.binary else binascii.unhexlify(data.strip())
-            plaintext = decrypt(ciphertext, key, args.keccak_compatibility)
+            plaintext = decrypt(ciphertext, key, args.compatibility)
             if args.binary:
                 getattr(sys.stdout, 'buffer', sys.stdout).write(plaintext)
             elif args.hex:
@@ -366,7 +366,7 @@ def main():
 
         elif args._command == 'enc':
             plaintext = data
-            ciphertext = encrypt(plaintext, key, args.keccak_compatibility)
+            ciphertext = encrypt(plaintext, key, args.compatibility)
             stdout = getattr(sys.stdout, 'buffer', sys.stdout)
             stdout.write(ciphertext if args.binary else binascii.hexlify(ciphertext) + b'\n')
 
