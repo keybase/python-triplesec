@@ -282,7 +282,7 @@ def main():
         "hex encode all output")
 
     parser.add_argument('--keccak-compatibility', action='store_true',
-        help="Use Keccak instead of SHA3 for the second MAC. Only allowed in versions before 4.")
+        help="Use Keccak instead of SHA3 for the second MAC. Only effective in versions before 4.")
 
     parser.add_argument('-k', '--key', help="the TripleSec key; "
         "if not specified will check the TRIPLESEC_KEY env variable, "

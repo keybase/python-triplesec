@@ -130,7 +130,7 @@ _versions[1] = Constants(
 
 def get_version(version, keccak_compatibility):
     if keccak_compatibility and version >= 4:
-        raise ValueError("Cannot use keccak compatibility in versions 4 and later")
+        keccak_compatibility = False
     version = _versions[version]
     if keccak_compatibility:
         mac = version.MACs[1]
