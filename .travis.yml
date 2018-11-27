@@ -1,13 +1,11 @@
 language:
   python
 python:
-  - 2.6
   - 2.7
   - 3.3
   - 3.6
 install:
-  - pip install requirements.txt
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
+  - pip install -r requirements.txt
 script:
   nosetests --verbose
 notifications:
