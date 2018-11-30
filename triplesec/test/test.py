@@ -11,6 +11,7 @@ import struct
 
 import triplesec
 from triplesec import TripleSec, TripleSecError
+from triplesec.versions import _versions
 
 
 path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
@@ -139,7 +140,7 @@ class TripleSec_tests(unittest.TestCase):
         s = triplesec.rndfile.read(100)
         k = triplesec.rndfile.read(32)
         for c in (triplesec.crypto.XSalsa20, triplesec.crypto.AES, triplesec.crypto.Twofish):
-            self.assertEqual(s, c.decrypt(c.encrypt(s, k), k), c.__name__)
+            self.assertEqual(s, c.decrypt(c.encrypt(s, k, c.generate_iv_data(triplesec.rndfile)), k), c.__name__)
 
         ciphertext = b'24-byte nonce for xsalsa' + unhex('002d4513843fc240c401e541')
         self.assertEqual(b'Hello world!', triplesec.crypto.XSalsa20.decrypt(ciphertext,
@@ -151,17 +152,29 @@ class TripleSec_tests(unittest.TestCase):
             b'this is 32-byte key for xsalsa20'))
 
     def test_spec(self):
-        for version in [1, 3, 4]:
-            compatibility = True if version in [1, 3] else False
+        for version in _versions.keys():
+            compatibility = version in {1, 3}
             path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
-            vectors = json.load(open(os.path.join(path, "spec/triplesec_v{}.json".format(version))))
-            for v in vectors['vectors']:
-                key = unhex(v['key'])
-                pt = unhex(v['pt'])
-                ct = unhex(v['ct'])
+            with open(os.path.join(path, "spec/triplesec_v{}.json".format(version))) as specfile:
+                vectors = json.load(specfile)
+                for v in vectors['vectors']:
+                    key = unhex(v['key'])
+                    pt = unhex(v['pt'])
+                    ct = unhex(v['ct'])
+                    rndstream = six.BytesIO(unhex(v['r']))
 
-                # Self-consistency
-                self.assertEqual(pt, triplesec.decrypt(triplesec.encrypt(pt, key, compatibility=compatibility), key, compatibility=compatibility))
+                    # Self-consistency
+                    got_self_compat = triplesec.encrypt(pt, key, compatibility=compatibility)
+                    self.assertEqual(pt, triplesec.decrypt(got_self_compat, key, compatibility=compatibility))
 
-                # Able to decrypt spec
-                self.assertEqual(pt, triplesec.decrypt(ct, key, compatibility=compatibility))
+                    # Self-consistency for reverse compatibility
+                    got_self_rev_compat = triplesec.encrypt(pt, key, compatibility=not compatibility)
+                    self.assertEqual(pt, triplesec.decrypt(got_self_rev_compat, key, compatibility=not compatibility))
+
+                    # Able to decrypt spec
+                    self.assertEqual(pt, triplesec.decrypt(ct, key, compatibility=compatibility))
+
+                    # Correct encryption with fixed random tape
+                    T = TripleSec(key, rndstream=rndstream)
+                    got = T.encrypt(pt, v=version, compatibility=compatibility)
+                    self.assertEqual(got.hex(), ct.hex())

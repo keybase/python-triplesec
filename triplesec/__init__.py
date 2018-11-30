@@ -53,10 +53,11 @@ class TripleSec():
         if not isinstance(data, six.binary_type):
             raise TripleSecFailedAssertion(u"The return value was not binary")
 
-    def __init__(self, key=None):
+    def __init__(self, key=None, rndstream=None):
         self._check_key(key)
         self.key = key
         self._extra_bytes = None
+        self.rndstream = rndstream
 
     @staticmethod
     def _key_stretching(key, salt, version, extra_bytes=0):
@@ -125,10 +126,12 @@ class TripleSec():
         return result
 
     def _encrypt(self, data, key, version, extra_bytes):
-        salt = rndfile.read(version.salt_size)
+        rndstream = self.rndstream or rndfile
+
+        salt = rndstream.read(version.salt_size)
         mac_keys, cipher_keys, extra = self._key_stretching(key, salt, version, extra_bytes)
 
-        encrypted_material = self._encrypt_data(data, cipher_keys, version)
+        encrypted_material = self._encrypt_data(data, cipher_keys, version, rndstream)
 
         header = b''.join(version.header)
 
@@ -150,11 +153,17 @@ class TripleSec():
         return result
 
     @staticmethod
-    def _encrypt_data(data, cipher_keys, version):
+    def _encrypt_data(data, cipher_keys, version, rndstream=None):
+        iv_datas = {}
+
+        # Generate the IVs in reverse order as per the reference JavaScript implementation
+        for n, c in reversed(list(enumerate(version.ciphers))):
+            iv_datas[n] = c.implementation.generate_iv_data(rndstream=rndstream)
+
+        # The keys order is from the outermost to the innermost
         for n, c in enumerate(version.ciphers):
-            # the keys order is from the outermost to the innermost
             key = cipher_keys[n]
-            data = c.implementation.encrypt(data, key)
+            data = c.implementation.encrypt(data, key, iv_datas[n])
         return data
 
     def decrypt_ascii(self, ascii_string, key=None, digest="hex"):
