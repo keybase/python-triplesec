@@ -175,11 +175,11 @@ class XSalsa20:
 class XSalsa20Reversed(XSalsa20):
     @classmethod
     def encrypt(cls, data, key, iv_data):
-        return super().encrypt(data, key, iv_data, reverse_endianness=True)
+        return super(XSalsa20Reversed, cls).encrypt(data, key, iv_data, reverse_endianness=True)
 
     @classmethod
     def decrypt(cls, data, key):
-        return super().decrypt(data, key, reverse_endianness=True)
+        return super(XSalsa20Reversed, cls).decrypt(data, key, reverse_endianness=True)
 
 def HMAC_SHA512(data, key):
     return hmac.new(key, data, hashlib.sha512).digest()
