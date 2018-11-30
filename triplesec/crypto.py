@@ -137,7 +137,7 @@ class Twofish(object):
         return strxor(data[cls.block_size:],
                       cls._gen_keystream(len(data[cls.block_size:]), tfish, ctr))
 
-class XSalsa20:
+class XSalsa20(object):
     key_size = 32
     iv_size = 24
 

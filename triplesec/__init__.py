@@ -371,7 +371,10 @@ def main():
             elif args.hex:
                 print(binascii.hexlify(plaintext).decode())
             else:
-                print(plaintext.decode('utf-8', 'replace'))
+                try:
+                    print(plaintext.decode('ascii', 'strict'))
+                except UnicodeDecodeError:
+                    sys.stderr.write("Aborting: unable to decode plaintext as ASCII. Use -b to output binary.\n")
 
         elif args._command == 'enc':
             plaintext = data
