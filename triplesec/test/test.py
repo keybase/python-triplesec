@@ -4,6 +4,7 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 from binascii import unhexlify as unhex
+from binascii import hexlify
 import json
 import os.path
 import six
@@ -177,4 +178,4 @@ class TripleSec_tests(unittest.TestCase):
                     # Correct encryption with fixed random tape
                     T = TripleSec(key, rndstream=rndstream)
                     got = T.encrypt(pt, v=version, compatibility=compatibility)
-                    self.assertEqual(got.hex(), ct.hex())
+                    self.assertEqual(hexlify(got), hexlify(ct))
