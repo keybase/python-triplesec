@@ -118,6 +118,19 @@ class TripleSec_tests(unittest.TestCase):
             c = triplesec.encrypt(p, k)
             self.assertEqual(p, triplesec.decrypt(c, k), i)
 
+    def test_using_randomness(self):
+        for version in _versions.keys():
+            compatibility = version in {1, 3}
+            T = TripleSec(key=b"YELLOW_SUBMARINE")
+            pt = b"foobar"
+            once = T.encrypt(pt, v=version, compatibility=compatibility)
+            twice = T.encrypt(pt, v=version, compatibility=compatibility)
+            self.assertNotEqual(once, twice)
+            T = TripleSec(key=b"YELLOW_SUBMARINE")
+            thrice = T.encrypt(pt, v=version, compatibility=compatibility)
+            self.assertNotEqual(once, thrice)
+            self.assertNotEqual(twice, thrice)
+
     def test_external_vectors(self):
         for V in vectors:
             if 'disabled' in V: continue
