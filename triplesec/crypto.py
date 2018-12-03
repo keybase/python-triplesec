@@ -12,6 +12,7 @@ import scrypt
 import struct
 import hmac
 import hashlib
+import sha3
 import twofish
 import salsa20
 from Crypto.Util import Counter
@@ -23,8 +24,6 @@ from Crypto import Random
 from .utils import (
     TripleSecFailedAssertion,
     TripleSecError,
-    sha3_512,
-    keccak,
     word_byteswap
 )
 
@@ -185,10 +184,10 @@ def HMAC_SHA512(data, key):
     return hmac.new(key, data, hashlib.sha512).digest()
 
 def HMAC_SHA3(data, key):
-    return hmac.new(key, data, sha3_512).digest()
+    return hmac.new(key, data, hashlib.sha3_512).digest()
 
 def HMAC_KECCAK(data, key):
-    return hmac.new(key, data, keccak).digest()
+    return hmac.new(key, data, sha3.keccak_512).digest()
 
 def Scrypt(key, salt, length, parameters):
     try:

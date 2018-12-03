@@ -8,7 +8,6 @@ These are the definitions of the data structures, the exceptions and other tools
 used across the codebase.
 """
 
-import hashlib
 import six
 import array
 import binascii
@@ -16,11 +15,6 @@ import sys
 from six.moves import zip
 from collections import namedtuple
 import Crypto.Hash.keccak
-if sys.version_info > (3, 2):
-    if 'sha3_512' not in hashlib.algorithms_available:
-        import sha3
-else:
-    import sha3
 
 
 MAGIC_BYTES = binascii.unhexlify(b'1c94d7de')
@@ -60,53 +54,6 @@ def _constant_time_compare(a, b):
     for x, y in zip(six.iterbytes(a), six.iterbytes(b)):
         result |= x ^ y
     return result == 0
-
-class new_sha3_512(object):
-    block_size = 72
-    digest_size = 64
-
-    def __init__(self, string=b''):
-        self._obj = hashlib.sha3_512()
-        self._obj.update(string)
-
-    def digest(self):
-        return self._obj.digest()
-
-    def hexdigest(self):
-        return self._obj.hexdigest()
-
-    def update(self, string):
-        return self._obj.update(string)
-
-    def copy(self):
-        copy = new_sha3_512()
-        copy._obj = self._obj.copy()
-        return copy
-sha3_512 = lambda s=b'': new_sha3_512(s)
-
-class new_keccak(object):
-    block_size = 72
-    digest_size = 64
-
-    def __init__(self, string=b''):
-        self._obj = Crypto.Hash.keccak.new(digest_bits=512)
-        self.input = b""
-        self.input += string
-        self._obj.update(string)
-
-    def digest(self):
-        return self._obj.digest()
-
-    def hexdigest(self):
-        return self._obj.hexdigest()
-
-    def update(self, string):
-        self.input += string
-        return self._obj.update(string)
-
-    def copy(self):
-        return new_keccak(self.input)
-keccak = lambda s=b'': new_keccak(s)
 
 def win32_utf8_argv():
     """Uses shell32.GetCommandLineArgvW to get sys.argv as a list of UTF-8
