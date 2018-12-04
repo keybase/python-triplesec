@@ -26,15 +26,12 @@ from .utils import (
     _constant_time_compare,
     win32_utf8_argv
 )
-from .versions import VERSIONS
+from .versions import get_version, valid_version, LATEST_VERSION
 
 
 ### MAIN CLASS
 class TripleSec():
-    LATEST_VERSION = 3
     MAGIC_BYTES = MAGIC_BYTES
-
-    VERSIONS = VERSIONS
 
     @staticmethod
     def _check_key(key):
@@ -56,10 +53,11 @@ class TripleSec():
         if not isinstance(data, six.binary_type):
             raise TripleSecFailedAssertion(u"The return value was not binary")
 
-    def __init__(self, key=None):
+    def __init__(self, key=None, rndstream=None):
         self._check_key(key)
         self.key = key
         self._extra_bytes = None
+        self.rndstream = rndstream
 
     @staticmethod
     def _key_stretching(key, salt, version, extra_bytes=0):
@@ -111,15 +109,15 @@ class TripleSec():
         result = digestor(binary_result)
         return result
 
-    def encrypt(self, data, key=None, v=None, extra_bytes=0):
+    def encrypt(self, data, key=None, v=None, extra_bytes=0, compatibility=False):
         self._check_data(data)
         self._check_key(key)
         if key is None and self.key is None:
             raise TripleSecError(u"You didn't initialize TripleSec with a key, so you need to specify one")
         if key is None: key = self.key
 
-        if not v: v = self.LATEST_VERSION
-        version = self.VERSIONS[v]
+        if not v: v = LATEST_VERSION
+        version = get_version(v, compatibility)
         result, extra = self._encrypt(data, key, version, extra_bytes)
 
         self._check_output_type(result)
@@ -128,10 +126,12 @@ class TripleSec():
         return result
 
     def _encrypt(self, data, key, version, extra_bytes):
-        salt = rndfile.read(version.salt_size)
+        rndstream = self.rndstream or rndfile
+
+        salt = rndstream.read(version.salt_size)
         mac_keys, cipher_keys, extra = self._key_stretching(key, salt, version, extra_bytes)
 
-        encrypted_material = self._encrypt_data(data, cipher_keys, version)
+        encrypted_material = self._encrypt_data(data, cipher_keys, version, rndstream)
 
         header = b''.join(version.header)
 
@@ -153,11 +153,17 @@ class TripleSec():
         return result
 
     @staticmethod
-    def _encrypt_data(data, cipher_keys, version):
+    def _encrypt_data(data, cipher_keys, version, rndstream=None):
+        iv_datas = {}
+
+        # Generate the IVs in reverse order as per the reference JavaScript implementation
+        for n, c in reversed(list(enumerate(version.ciphers))):
+            iv_datas[n] = c.implementation.generate_iv_data(rndstream=rndstream)
+
+        # The keys order is from the outermost to the innermost
         for n, c in enumerate(version.ciphers):
-            # the keys order is from the outermost to the innermost
             key = cipher_keys[n]
-            data = c.implementation.encrypt(data, key)
+            data = c.implementation.encrypt(data, key, iv_datas[n])
         return data
 
     def decrypt_ascii(self, ascii_string, key=None, digest="hex"):
@@ -180,7 +186,7 @@ class TripleSec():
         result = self.decrypt(binary_string, key)
         return result
 
-    def decrypt(self, data, key=None):
+    def decrypt(self, data, key=None, compatibility=False):
         self._check_data(data)
         self._check_key(key)
         if key is None and self.key is None:
@@ -191,10 +197,10 @@ class TripleSec():
             raise TripleSecError(u"This does not look like a TripleSec ciphertext")
 
         header_version = struct.unpack(">I", data[4:8])[0]
-        if header_version not in self.VERSIONS:
+        if not valid_version(header_version):
             raise TripleSecError(u"Unimplemented version: " + str(header_version))
 
-        version = self.VERSIONS[header_version]
+        version = get_version(header_version, compatibility)
         result = self._decrypt(data, key, version)
 
         self._check_output_type(result)
@@ -284,6 +290,9 @@ def main():
         help="consider all input (key, plaintext, ciphertext) to be hex encoded; "
         "hex encode all output")
 
+    parser.add_argument('--compatibility', action='store_true',
+        help="Use Keccak instead of SHA3 for the second MAC and reverse endianness of Salsa20 in version 1. Only effective in versions before 4.")
+
     parser.add_argument('-k', '--key', help="the TripleSec key; "
         "if not specified will check the TRIPLESEC_KEY env variable, "
         "then prompt the user for it")
@@ -356,17 +365,20 @@ def main():
     try:
         if args._command == 'dec':
             ciphertext = data if args.binary else binascii.unhexlify(data.strip())
-            plaintext = decrypt(ciphertext, key)
+            plaintext = decrypt(ciphertext, key, args.compatibility)
             if args.binary:
                 getattr(sys.stdout, 'buffer', sys.stdout).write(plaintext)
             elif args.hex:
                 print(binascii.hexlify(plaintext).decode())
             else:
-                print(plaintext.decode('utf-8', 'replace'))
+                try:
+                    print(plaintext.decode('ascii', 'strict'))
+                except UnicodeDecodeError:
+                    sys.stderr.write("Aborting: unable to decode plaintext as ASCII. Use -b to output binary.\n")
 
         elif args._command == 'enc':
             plaintext = data
-            ciphertext = encrypt(plaintext, key)
+            ciphertext = encrypt(plaintext, key, args.compatibility)
             stdout = getattr(sys.stdout, 'buffer', sys.stdout)
             stdout.write(ciphertext if args.binary else binascii.hexlify(ciphertext) + b'\n')
 

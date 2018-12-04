@@ -1,22 +1,4 @@
-import binascii
-import sys
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-from triplesec.crypto import PBKDF2, XOR_HMAC_KECCAK_SHA512
-from triplesec.utils import PBKDF2_params
-
-class TripleSec_test_PBKDF2(unittest.TestCase):
-    def test(self):
-        for i,v in enumerate(test_vectors['vectors']):
-            key = binascii.unhexlify(v['key'])
-            salt = binascii.unhexlify(v['salt'])
-            derived = PBKDF2(key, salt, v['dkLen'], PBKDF2_params(v['c'], XOR_HMAC_KECCAK_SHA512))
-            self.assertEqual(binascii.hexlify(derived), v['dk'].encode(), repr(v))
-
-
-test_vectors = {
+{
     "version": 1,
     "generated": "Mon Sep 16 2013 14:22:47 GMT-0400 (EDT)",
     "vectors": [

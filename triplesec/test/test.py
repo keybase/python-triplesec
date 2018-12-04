@@ -4,6 +4,7 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 from binascii import unhexlify as unhex
+from binascii import hexlify
 import json
 import os.path
 import six
@@ -11,6 +12,7 @@ import struct
 
 import triplesec
 from triplesec import TripleSec, TripleSecError
+from triplesec.versions import _versions
 
 
 path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
@@ -24,6 +26,7 @@ for v in vectors:
 
 # A generic vector for various tests
 VECTOR = vectors[0]
+assert 'disabled' not in VECTOR
 
 
 class TripleSec_tests(unittest.TestCase):
@@ -99,7 +102,7 @@ class TripleSec_tests(unittest.TestCase):
             self.assertEqual(None, T.extra_bytes())
             data = VECTOR['ciphertext']
             header_version = struct.unpack(">I", data[4:8])[0]
-            version = T.VERSIONS[header_version]
+            version = triplesec.versions.get_version(header_version, False)
             header, salt, macs, encrypted_material = T._split_ciphertext(data, version)
             mac_keys, cipher_keys, extra = T._key_stretching(VECTOR['key'], salt, version, len(VECTOR['extra']))
             self.assertEqual(VECTOR['extra'], extra)
@@ -115,6 +118,19 @@ class TripleSec_tests(unittest.TestCase):
             c = triplesec.encrypt(p, k)
             self.assertEqual(p, triplesec.decrypt(c, k), i)
 
+    def test_using_randomness(self):
+        for version in _versions.keys():
+            compatibility = version in {1, 3}
+            T = TripleSec(key=b"YELLOW_SUBMARINE")
+            pt = b"foobar"
+            once = T.encrypt(pt, v=version, compatibility=compatibility)
+            twice = T.encrypt(pt, v=version, compatibility=compatibility)
+            self.assertNotEqual(once, twice)
+            T = TripleSec(key=b"YELLOW_SUBMARINE")
+            thrice = T.encrypt(pt, v=version, compatibility=compatibility)
+            self.assertNotEqual(once, thrice)
+            self.assertNotEqual(twice, thrice)
+
     def test_external_vectors(self):
         for V in vectors:
             if 'disabled' in V: continue
@@ -127,29 +143,18 @@ class TripleSec_tests(unittest.TestCase):
         c = c[:-2] + six.int2byte(six.indexbytes(c, -2) ^ 25) + six.int2byte(six.indexbytes(c, -1))
         self.assertRaisesRegexp(TripleSecError, regex, lambda: triplesec.decrypt(c, VECTOR['key']))
 
-    def test_chi_squared(self):
-        pass  # TODO
-
-    def test_randomness(self):
-        pass  # TODO
-
-    def test_randomness_of_ciphertext(self):
-        pass  # TODO
-
     def test_signatures_v1(self):
         inp = unhex('1c94d7de000000019f1d6915ca8035e207292f3f4f88237da9876505dee100dfbda9fd1cd278d3590840109465e5ed347fdeb6fc2ca8c25fa5cf6e317d977f6c5209f46c30055f5c531c')
         key = unhex('1ee5eec12cfbf3cc311b855ddfddf913cff40b3a7dce058c4e46b5ba9026ba971a973144cbf180ceca7d35e1600048d414f7d5399b4ae46732c34d898fa68fbb0dbcea10d84201734e83c824d0f66207cf6f1b6a2ba13b9285329707facbc060')
         out = unhex('aa761d7d39c1503e3f4601f1e331787dca67794357650d76f6408fb9ea37f9eede1f45fcc741a3ec06e9d23be97eb1fbbcbe64bc6b2c010827469a8a0abbb008b11effefe95ddd558026dd2ce83838d7a087e71d8a98e5cbee59f9f788e99dbe7f9032912a4384af760c56da8d7a40ab057796ded052be17a69a6d14e703a621')
-
-        version = TripleSec.VERSIONS[1]
-
+        version = triplesec.versions.get_version(1, compatibility=True)
         self.assertEqual(out, b''.join(TripleSec._generate_macs(inp, [key[:48], key[48:]], version)))
 
     def test_ciphers(self):
         s = triplesec.rndfile.read(100)
         k = triplesec.rndfile.read(32)
         for c in (triplesec.crypto.XSalsa20, triplesec.crypto.AES, triplesec.crypto.Twofish):
-            self.assertEqual(s, c.decrypt(c.encrypt(s, k), k), c.__name__)
+            self.assertEqual(s, c.decrypt(c.encrypt(s, k, c.generate_iv_data(triplesec.rndfile)), k), c.__name__)
 
         ciphertext = b'24-byte nonce for xsalsa' + unhex('002d4513843fc240c401e541')
         self.assertEqual(b'Hello world!', triplesec.crypto.XSalsa20.decrypt(ciphertext,
@@ -159,3 +164,31 @@ class TripleSec_tests(unittest.TestCase):
             '4848297feb1fb52fb66d81609bd547fabcbe7026edc8b5e5e449d088bfa69c088f5d8da1d791267c2c195a7f8cae9c4b4050d08ce6d3a151ec265f3a58e47648')
         self.assertEqual(b'\x00' * 64, triplesec.crypto.XSalsa20.decrypt(ciphertext,
             b'this is 32-byte key for xsalsa20'))
+
+    def test_spec(self):
+        for version in _versions.keys():
+            compatibility = version in {1, 3}
+            path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
+            with open(os.path.join(path, "spec/triplesec_v{}.json".format(version))) as specfile:
+                vectors = json.load(specfile)
+                for v in vectors['vectors']:
+                    key = unhex(v['key'])
+                    pt = unhex(v['pt'])
+                    ct = unhex(v['ct'])
+                    rndstream = six.BytesIO(unhex(v['r']))
+
+                    # Self-consistency
+                    got_self_compat = triplesec.encrypt(pt, key, compatibility=compatibility)
+                    self.assertEqual(pt, triplesec.decrypt(got_self_compat, key, compatibility=compatibility))
+
+                    # Self-consistency for reverse compatibility
+                    got_self_rev_compat = triplesec.encrypt(pt, key, compatibility=not compatibility)
+                    self.assertEqual(pt, triplesec.decrypt(got_self_rev_compat, key, compatibility=not compatibility))
+
+                    # Able to decrypt spec
+                    self.assertEqual(pt, triplesec.decrypt(ct, key, compatibility=compatibility))
+
+                    # Correct encryption with fixed random tape
+                    T = TripleSec(key, rndstream=rndstream)
+                    got = T.encrypt(pt, v=version, compatibility=compatibility)
+                    self.assertEqual(hexlify(got), hexlify(ct))
