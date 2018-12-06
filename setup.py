@@ -26,7 +26,7 @@ if sys.version_info < (2, 7): tests_require.append('unittest2')
 
 setup(
     name = 'TripleSec',
-    version = '0.5',
+    version = '0.5.1',
     description = 'a Python implementation of TripleSec',
     author = 'Keybase',
     author_email = 'max@keybase.io',
@@ -41,7 +41,7 @@ setup(
                    'Topic :: Security :: Cryptography',
                    'Topic :: Software Development :: Libraries'],
     long_description = open('README.rst').read(),
-    install_requires = ["pycryptodome==3.7.1",
+    install_requires = ["pycryptodomex==3.7.1",
                         "scrypt==0.8.6",
                         "six==1.11.0",
                         "pysha3==1.0.2",

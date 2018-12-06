@@ -15,11 +15,11 @@ import hashlib
 import sha3
 import twofish
 import salsa20
-from Crypto.Util import Counter
-from Crypto.Util.strxor import strxor
-from Crypto.Cipher import AES as Crypto_AES
-from Crypto.Protocol.KDF import PBKDF2 as Crypto_PBKDF2
-from Crypto import Random
+from Cryptodome.Util import Counter
+from Cryptodome.Util.strxor import strxor
+from Cryptodome.Cipher import AES as Crypto_AES
+from Cryptodome.Protocol.KDF import PBKDF2 as Crypto_PBKDF2
+from Cryptodome import Random
 
 from .utils import (
     TripleSecFailedAssertion,

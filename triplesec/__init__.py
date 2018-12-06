@@ -15,7 +15,7 @@ import struct
 import six
 import sys
 
-from Crypto import Random
+from Cryptodome import Random
 rndfile = Random.new()
 
 from .utils import (
