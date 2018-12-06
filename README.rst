@@ -34,11 +34,11 @@ Installation
   pip install TripleSec
 
 Note: You may get an OpenSSL error while installing
-the scrypt dependency.
+the scrypt dependency on older operating systems.
 On Ubuntu/Debian, run
 ::
 # apt-get install libssl-dev
-On Mac, follow the instructions at https://github.com/ethereum/pyethapp/issues/209#issuecomment-308466232.
+On OS X, follow the instructions at https://github.com/ethereum/pyethapp/issues/209#issuecomment-308466232.
 
 Usage
 -----
