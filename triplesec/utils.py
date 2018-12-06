@@ -14,7 +14,6 @@ import binascii
 import sys
 from six.moves import zip
 from collections import namedtuple
-import Crypto.Hash.keccak
 
 
 MAGIC_BYTES = binascii.unhexlify(b'1c94d7de')
