@@ -26,7 +26,7 @@ if sys.version_info < (2, 7): tests_require.append('unittest2')
 
 setup(
     name = 'TripleSec',
-    version = '0.5',
+    version = '0.5.1',
     description = 'a Python implementation of TripleSec',
     author = 'Keybase',
     author_email = 'max@keybase.io',
