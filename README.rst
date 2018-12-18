@@ -9,11 +9,11 @@ python-triplesec
    :alt: Coverage Status
    :target: https://coveralls.io/r/keybase/python-triplesec
 
-.. image:: https://pypip.in/v/TripleSec/badge.png
+.. image:: https://img.shields.io/pypi/v/TripleSec.svg
    :alt: PyPi version
    :target: https://crate.io/packages/TripleSec
 
-.. image:: https://pypip.in/d/TripleSec/badge.png
+.. image:: https://img.shields.io/pypi/dm/TripleSec.svg
    :alt: PyPi downloads
    :target: https://crate.io/packages/TripleSec
 
