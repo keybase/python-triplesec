@@ -30,7 +30,7 @@ setup(
     description = 'a Python implementation of TripleSec',
     author = 'Keybase',
     author_email = 'max@keybase.io',
-    url = 'http://github.com/keybase/python-triplesec',
+    url = 'https://github.com/keybase/python-triplesec',
     packages = ['triplesec'],
     license = 'BSD-new',
     classifiers = ['Intended Audience :: Developers',
