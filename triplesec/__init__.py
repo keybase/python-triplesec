@@ -103,7 +103,7 @@ class TripleSec():
                    "hqx": binascii.b2a_hqx}
         digestor = digests.get(digest)
         if not digestor:
-            TripleSecError(u"Digestor not supported.")
+            raise TripleSecError(u"Digestor not supported.")
 
         binary_result = self.encrypt(data, key, v, extra_bytes)
         result = digestor(binary_result)
@@ -180,7 +180,7 @@ class TripleSec():
                    "hqx": binascii.a2b_hqx}
         digestor = digests.get(digest)
         if not digestor:
-            TripleSecError(u"Digestor not supported.")
+            raise TripleSecError(u"Digestor not supported.")
 
         binary_string = digestor(ascii_string)
         result = self.decrypt(binary_string, key)
