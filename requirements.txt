@@ -1,4 +1,4 @@
-pycryptodomex==3.7.1
+pycryptodomex==3.19.1
 pysha3==1.0.2
 salsa20==0.3.0
 scrypt==0.8.6
