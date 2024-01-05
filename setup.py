@@ -41,7 +41,7 @@ setup(
                    'Topic :: Security :: Cryptography',
                    'Topic :: Software Development :: Libraries'],
     long_description = open('README.rst').read(),
-    install_requires = ["pycryptodomex==3.7.1",
+    install_requires = ["pycryptodomex==3.19.1",
                         "scrypt==0.8.6",
                         "six==1.11.0",
                         "pysha3==1.0.2",
